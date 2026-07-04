@@ -176,6 +176,29 @@ export default function FireDetail({ fire, onClose, relatedAlerts = [], keyLocat
         <span>{fire.latitude?.toFixed(4)}, {fire.longitude?.toFixed(4)}</span>
       </div>
 
+      {fire.source && (
+        <div className="detail-source">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <ellipse cx="12" cy="12" rx="10" ry="4" />
+            <path d="M2 12c0 5.5 4.5 10 10 10s10-4.5 10-10" />
+            <path d="M12 2v20" />
+          </svg>
+          <span className="detail-source-label">Data source</span>
+          {fire.source_url ? (
+            <a
+              className="detail-source-value"
+              href={fire.source_url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {fire.source}
+            </a>
+          ) : (
+            <span className="detail-source-value">{fire.source}</span>
+          )}
+        </div>
+      )}
+
       {distancesToLocations.length > 0 && (
         <div className="key-dist-section">
           <div className="key-dist-title">
