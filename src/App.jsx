@@ -40,7 +40,7 @@ function initialLayer() {
 }
 
 export default function App() {
-  const { fires, loading, error, setMonitored } = useWildfires()
+  const { fires, loading, error, setMonitored, refresh: refreshFires } = useWildfires()
   const { units, setUnits } = useUnits()
   const { theme, setTheme } = useTheme()
   const { settings: notifSettings, save: saveNotifSettings } = useNotificationSettings()
@@ -188,15 +188,17 @@ export default function App() {
         fetch(`${base}/functions/v1/fetch-external-alerts`, { method: 'POST', headers }),
         fetch(`${base}/functions/v1/scan-social-feeds`, { method: 'POST', headers }),
         fetch(`${base}/functions/v1/fetch-nasa-firms`, { method: 'POST', headers }),
+        fetch(`${base}/functions/v1/fetch-wildfire-incidents`, { method: 'POST', headers }),
       ])
       // Realtime pushes new rows, but refresh guards against missed events.
       refreshAlerts()
+      refreshFires()
     } catch {
       // transient failure — the next interval will retry
     } finally {
       setScanning(false)
     }
-  }, [refreshAlerts])
+  }, [refreshAlerts, refreshFires])
 
   useEffect(() => {
     scanAllSources()
