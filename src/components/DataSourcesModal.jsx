@@ -99,13 +99,86 @@ function VerifyBadge({ source, onRecheck }) {
   )
 }
 
-export default function DataSourcesModal({ open, onClose, sources, loading, onCreate, onUpdate, onDelete, onVerify }) {
+function ScrapedPanel({ page, error }) {
+  if (error && !page) {
+    return <div className="scrape-panel error">Extraction failed: {error}</div>
+  }
+  if (!page) return null
+  if (page.status === 'error') {
+    return <div className="scrape-panel error">Extraction failed: {page.error || 'Unknown error.'}</div>
+  }
+
+  const data = page.data || {}
+  const incidents = data.incidents || []
+  const links = data.links || []
+  const headings = data.headings || []
+  const when = page.scraped_at
+    ? new Date(page.scraped_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+    : ''
+
+  return (
+    <div className="scrape-panel">
+      <div className="scrape-panel-head">
+        <span className="scrape-count">{page.item_count} incident{page.item_count === 1 ? '' : 's'} extracted</span>
+        {when && <span className="scrape-when">Last run {when}</span>}
+      </div>
+
+      {incidents.length > 0 && (
+        <div className="scrape-block">
+          <div className="scrape-block-title">Detected incidents</div>
+          <ul className="scrape-incidents">
+            {incidents.slice(0, 12).map((inc, i) => (
+              <li key={i} className="scrape-incident">
+                <span className="scrape-inc-name">{inc.name}</span>
+                {inc.acres && <span className="scrape-inc-tag">{Number(inc.acres).toLocaleString()} ac</span>}
+                {inc.containment != null && <span className="scrape-inc-tag contain">{inc.containment}% contained</span>}
+              </li>
+            ))}
+          </ul>
+          {incidents.length > 12 && <div className="scrape-more">+{incidents.length - 12} more</div>}
+        </div>
+      )}
+
+      {headings.length > 0 && (
+        <div className="scrape-block">
+          <div className="scrape-block-title">Page sections</div>
+          <div className="scrape-tags">
+            {headings.slice(0, 10).map((h, i) => (
+              <span key={i} className="scrape-tag">{h.text}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {links.length > 0 && (
+        <div className="scrape-block">
+          <div className="scrape-block-title">Links found ({links.length})</div>
+          <ul className="scrape-links">
+            {links.slice(0, 8).map((l, i) => (
+              <li key={i}>
+                <a href={l.href} target="_blank" rel="noreferrer">{l.text}</a>
+              </li>
+            ))}
+          </ul>
+          {links.length > 8 && <div className="scrape-more">+{links.length - 8} more links</div>}
+        </div>
+      )}
+
+      {incidents.length === 0 && (
+        <div className="scrape-empty">No wildfire incidents detected on this page. Structured page data (title, sections, links) was still captured.</div>
+      )}
+    </div>
+  )
+}
+
+export default function DataSourcesModal({ open, onClose, sources, loading, onCreate, onUpdate, onDelete, onVerify, scrapedPages = {}, scrapeBusy = {}, scrapeErrors = {}, onScrape }) {
   const [form, setForm] = useState(EMPTY_FORM)
   const [mode, setMode] = useState('url')
   const [kml, setKml] = useState({ content: null, features: 0, fileName: '', error: null })
   const [editingId, setEditingId] = useState(null)
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState(null)
+  const [expanded, setExpanded] = useState(null)
 
   // Geometry counts for KML sources, parsed once per source list change.
   const kmlCounts = useMemo(() => {
@@ -392,8 +465,13 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
                   <ul className="source-list">
                     {group.items.map((source) => {
                       const isKml = source.source_kind === 'kml'
+                      const scraped = scrapedPages[source.id]
+                      const isScraping = !!scrapeBusy[source.id]
+                      const scrapeErr = scrapeErrors[source.id]
+                      const isOpen = expanded === source.id
                       return (
                         <li key={source.id} className={`source-item ${(isKml ? source.visible !== false : source.enabled) ? '' : 'disabled'} ${editingId === source.id ? 'editing' : ''}`}>
+                          <div className="source-item-row">
                           <div className="source-item-main">
                             <div className="source-item-head">
                               <span className="source-name">{source.name}</span>
@@ -441,6 +519,26 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
                                 <span className="toggle-thumb" />
                               </span>
                             </button>
+                            {!isKml && onScrape && (
+                              <button
+                                className={`source-scrape ${isScraping ? 'busy' : ''} ${scraped && scraped.status === 'ok' ? 'has-data' : ''}`}
+                                onClick={() => {
+                                  if (!scraped) onScrape(source.id, source.url)
+                                  setExpanded(isOpen ? null : source.id)
+                                }}
+                                disabled={isScraping}
+                                aria-label="Extract structured data from this page"
+                                title="Extract structured data from this page"
+                              >
+                                {isScraping ? (
+                                  <span className="verify-spinner" aria-hidden="true" />
+                                ) : (
+                                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M4 4h7v7H4zM13 4h7v4h-7zM13 11h7v9h-7zM4 14h7v6H4z" />
+                                  </svg>
+                                )}
+                              </button>
+                            )}
                             <button
                               className="source-edit"
                               onClick={() => startEdit(source)}
@@ -461,6 +559,26 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
                               </svg>
                             </button>
                           </div>
+                          </div>
+                          {isOpen && !isKml && (
+                            <div className="scrape-wrap">
+                              <div className="scrape-toolbar">
+                                <span className="scrape-toolbar-title">Extracted structured data</span>
+                                <button
+                                  className="scrape-rerun"
+                                  onClick={() => onScrape(source.id, source.url)}
+                                  disabled={isScraping}
+                                >
+                                  {isScraping ? 'Extracting…' : 'Re-extract'}
+                                </button>
+                              </div>
+                              {isScraping && !scraped ? (
+                                <div className="scrape-panel loading">Extracting structured data…</div>
+                              ) : (
+                                <ScrapedPanel page={scraped} error={scrapeErr} />
+                              )}
+                            </div>
+                          )}
                         </li>
                       )
                     })}

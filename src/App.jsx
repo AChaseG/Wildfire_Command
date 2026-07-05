@@ -18,6 +18,7 @@ import { MEASURE_MODES } from './components/MeasureTool'
 import { useWildfires, useFireUpdates } from './hooks/useWildfires'
 import { useAlerts, useAlertRules } from './hooks/useAlerts'
 import { useDataSources } from './hooks/useDataSources'
+import { useScrapedPages } from './hooks/useScrapedPages'
 import { useKeyLocations } from './hooks/useKeyLocations'
 import { useFireRisk } from './hooks/useFireRisk'
 import { useResizablePanels } from './hooks/useResizablePanels'
@@ -114,6 +115,7 @@ export default function App() {
     deleteSource,
     verifySource,
   } = useDataSources()
+  const { pages: scrapedPages, busy: scrapeBusy, errors: scrapeErrors, scrape: scrapeSource } = useScrapedPages()
   const {
     locations: keyLocations,
     loading: keyLocLoading,
@@ -506,6 +508,10 @@ export default function App() {
         onUpdate={updateSource}
         onDelete={deleteSource}
         onVerify={verifySource}
+        scrapedPages={scrapedPages}
+        scrapeBusy={scrapeBusy}
+        scrapeErrors={scrapeErrors}
+        onScrape={scrapeSource}
       />
 
       <AddSocialAlertModal
