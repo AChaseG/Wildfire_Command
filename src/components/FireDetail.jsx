@@ -187,16 +187,34 @@ export default function FireDetail({ fire, onClose, relatedAlerts = [], keyLocat
             <div className="evac-level">Evacuation status unconfirmed</div>
             <div className="evac-note">
               No evacuation orders have been ingested for this incident. This does not mean the
-              area is clear — verify current orders with official sources.
+              area is clear — check the official evacuation authorities below.
             </div>
-            <a
-              className="evac-source-link"
-              href={`https://www.bing.com/search?q=${encodeURIComponent(`${fire.name} evacuation order`)}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Check official evacuation orders
-            </a>
+            <div className="evac-source-links">
+              <a
+                className="evac-source-link"
+                href="https://protect.genasys.com"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Genasys Protect zones
+              </a>
+              <a
+                className="evac-source-link"
+                href="https://dnr.wa.gov/wildfire-resources/current-wildfire-incident-information"
+                target="_blank"
+                rel="noreferrer"
+              >
+                WA DNR incidents
+              </a>
+              <a
+                className="evac-source-link"
+                href={`https://www.bing.com/search?q=${encodeURIComponent(`${fire.name} evacuation order`)}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Search this fire
+              </a>
+            </div>
           </div>
         </div>
       )}
