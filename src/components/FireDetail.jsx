@@ -59,6 +59,25 @@ function formatDist(meters, units) {
   return miles < 0.1 ? `${Math.round(meters * 3.281)} ft` : `${miles.toFixed(1)} mi`
 }
 
+const EVAC_LEVELS = {
+  flash: { label: 'Mandatory Evacuation Order', color: '#ff2e2e', note: 'Leave the area immediately.' },
+  urgent: { label: 'Mandatory Evacuation Order', color: '#f85149', note: 'Leave the area immediately.' },
+  high: { label: 'Evacuation Warning', color: '#f0a020', note: 'Be ready to leave at a moment’s notice.' },
+  medium: { label: 'Evacuation Advisory', color: '#58a6ff', note: 'Stay alert and prepared to leave.' },
+  low: { label: 'Evacuation Advisory', color: '#58a6ff', note: 'Stay alert and prepared to leave.' },
+}
+
+// Derived only from real evacuation-category alerts linked to this incident —
+// shown when applicable, using the highest-severity linked evacuation alert.
+function evacuationFromAlerts(alerts) {
+  const evac = alerts.filter((a) => a.category === 'evacuation')
+  if (evac.length === 0) return null
+  const top = evac.reduce((best, a) =>
+    (ALERT_SEVERITY[a.severity]?.rank ?? 0) > (ALERT_SEVERITY[best.severity]?.rank ?? 0) ? a : best,
+  )
+  return { ...(EVAC_LEVELS[top.severity] || EVAC_LEVELS.medium), count: evac.length }
+}
+
 export default function FireDetail({ fire, onClose, relatedAlerts = [], keyLocations = [], onSelectAlert, onToggleMonitor }) {
   const { units } = useUnits()
   if (!fire) {
@@ -87,6 +106,8 @@ export default function FireDetail({ fire, onClose, relatedAlerts = [], keyLocat
   const coordLabel = hasCoords
     ? `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`
     : '—'
+
+  const evac = evacuationFromAlerts(relatedAlerts)
 
   const distancesToLocations = keyLocations.map((loc) => ({
     loc,
@@ -138,6 +159,23 @@ export default function FireDetail({ fire, onClose, relatedAlerts = [], keyLocat
         </div>
         {fire.summary && <p className="detail-summary">{fire.summary}</p>}
       </div>
+
+      {evac && (
+        <div className="evac-banner" style={{ borderColor: evac.color, background: `${evac.color}1a` }}>
+          <span className="evac-icon" style={{ color: evac.color }} aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2 1 21h22L12 2z" />
+              <path d="M12 9v5M12 17h.01" />
+            </svg>
+          </span>
+          <div className="evac-text">
+            <div className="evac-level" style={{ color: evac.color }}>{evac.label}</div>
+            <div className="evac-note">
+              {evac.note} · {evac.count} evacuation alert{evac.count === 1 ? '' : 's'} linked
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="containment-bar-wrap">
         <div className="containment-bar-label">

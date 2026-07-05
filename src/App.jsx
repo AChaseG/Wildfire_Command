@@ -189,6 +189,7 @@ export default function App() {
         fetch(`${base}/functions/v1/scan-social-feeds`, { method: 'POST', headers }),
         fetch(`${base}/functions/v1/fetch-nasa-firms`, { method: 'POST', headers }),
         fetch(`${base}/functions/v1/fetch-wildfire-incidents`, { method: 'POST', headers }),
+        fetch(`${base}/functions/v1/fetch-purpleair`, { method: 'POST', headers }),
       ])
       // Realtime pushes new rows, but refresh guards against missed events.
       refreshAlerts()

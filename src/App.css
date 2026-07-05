@@ -677,6 +677,37 @@
   padding-top: 4px;
 }
 
+.evac-banner {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 0 0 14px;
+  padding: 11px 13px;
+  border: 1px solid;
+  border-left-width: 4px;
+  border-radius: 10px;
+}
+
+.evac-icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+}
+
+.evac-level {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  line-height: 1.2;
+}
+
+.evac-note {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
 .detail-source {
   display: flex;
   align-items: center;
