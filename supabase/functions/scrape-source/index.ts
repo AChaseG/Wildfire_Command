@@ -45,7 +45,9 @@ function extractNextDataIncidents(html: string): Incident[] | null {
   }
   const props = parsed?.props?.pageProps;
   if (!props) return null;
-  const list: any[] = Array.isArray(props.fires)
+  const list: any[] = Array.isArray(props.ssrFires)
+    ? props.ssrFires
+    : Array.isArray(props.fires)
     ? props.fires
     : props.ssrFire
     ? [props.ssrFire]
@@ -98,6 +100,55 @@ function extractIncidents(text: string): Incident[] {
   return incidents;
 }
 
+function decodeXml(s: string): string {
+  return s
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'")
+    .replace(/\s+/g, " ").trim();
+}
+
+function tag(block: string, name: string): string {
+  const m = block.match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)</${name}>`, "i"));
+  return m ? decodeXml(m[1]) : "";
+}
+
+// Parse an RSS/Atom feed (e.g. InciWeb) into incidents. Names carry a leading
+// unit code (e.g. "COPSF Aspen Acres Fire") which is stripped; acreage,
+// containment and state are read from the item description when present.
+function parseFeed(xml: string, baseUrl: string) {
+  const channelTitle = tag(xml.replace(/<item[\s\S]*/i, ""), "title") ||
+    tag(xml.replace(/<entry[\s\S]*/i, ""), "title");
+  const blocks = xml.match(/<item\b[\s\S]*?<\/item>|<entry\b[\s\S]*?<\/entry>/gi) || [];
+  const incidents: Incident[] = [];
+  const links: { text: string; href: string }[] = [];
+  for (const b of blocks.slice(0, MAX_INCIDENTS)) {
+    const rawTitle = tag(b, "title");
+    if (!rawTitle) continue;
+    const link = tag(b, "link");
+    const desc = tag(b, "description") || tag(b, "summary") || tag(b, "content");
+    const name = rawTitle.replace(/^[A-Z]{2,7}\s+(?=[A-Z])/, "").trim();
+    const acresMatch = desc.match(/([\d,]{2,})\s*acres/i);
+    const containMatch = desc.match(/(\d{1,3})\s*%\s*contain/i);
+    const stateMatch = desc.match(/State:\s*([A-Za-z][A-Za-z .]+?)(?:\s*(?:---|Coordinates|$))/i);
+    incidents.push({
+      name: /fire|complex|incident/i.test(name) ? name : `${name} Fire`,
+      acres: acresMatch ? acresMatch[1].replace(/,/g, "") : null,
+      containment: containMatch ? Math.min(100, parseInt(containMatch[1], 10)) : null,
+      location: stateMatch ? stateMatch[1].trim() : null,
+    });
+    if (link && links.length < MAX_LINKS) {
+      try {
+        links.push({ text: rawTitle.slice(0, 120), href: new URL(link, baseUrl).toString() });
+      } catch {
+        // skip malformed link
+      }
+    }
+  }
+  return { title: channelTitle, incidents, links };
+}
+
 async function scrape(url: string, baseUrl: string) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -111,11 +162,28 @@ async function scrape(url: string, baseUrl: string) {
       return { status: "error" as const, error: `HTTP ${res.status} ${res.statusText}`.trim() };
     }
     const contentType = res.headers.get("content-type") || "";
-    if (!contentType.includes("html")) {
+    const raw = await res.text();
+
+    const looksLikeFeed = /xml|rss|atom/i.test(contentType) || /^\s*(<\?xml|<rss\b|<feed\b)/i.test(raw.slice(0, 500));
+    if (looksLikeFeed) {
+      const feed = parseFeed(raw, baseUrl);
+      const description = feed.incidents.length
+        ? `${feed.incidents.length} incidents from feed.`
+        : "";
+      return {
+        status: "ok" as const,
+        title: feed.title,
+        description,
+        item_count: feed.incidents.length,
+        data: { title: feed.title, description, headings: [], links: feed.links, incidents: feed.incidents, excerpt: "" },
+      };
+    }
+
+    if (!contentType.includes("html") && !/<html|<!doctype html/i.test(raw.slice(0, 500))) {
       return { status: "error" as const, error: `Not an HTML page (${contentType.split(";")[0] || "unknown"}).` };
     }
 
-    const html = await res.text();
+    const html = raw;
     const doc = new DOMParser().parseFromString(html, "text/html");
     if (!doc) return { status: "error" as const, error: "Could not parse HTML." };
 

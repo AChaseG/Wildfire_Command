@@ -49,6 +49,41 @@ function statusFrom(attr: Attr, containment: number): "active" | "contained" | "
   return "active";
 }
 
+const COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+function degToCompass(deg: number): string {
+  return COMPASS[Math.round(deg / 22.5) % 16];
+}
+
+// WFIGS carries no weather, so live wind is pulled per incident from Open-Meteo
+// (free, no key) using each point's coordinates and merged onto the rows.
+// Batched by coordinate list to keep the scan to a handful of requests.
+type WindRow = { latitude: number; longitude: number; wind_speed: number | null; wind_direction: string | null };
+async function attachWind(rows: WindRow[]): Promise<void> {
+  const CHUNK = 100;
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const slice = rows.slice(i, i + CHUNK);
+    const lats = slice.map((r) => r.latitude.toFixed(4)).join(",");
+    const lngs = slice.map((r) => r.longitude.toFixed(4)).join(",");
+    const url =
+      `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lngs}` +
+      `&current=wind_speed_10m,wind_direction_10m&wind_speed_unit=mph`;
+    try {
+      const res = await fetch(url, { headers: { Accept: "application/json" } });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const arr = Array.isArray(data) ? data : [data];
+      for (let j = 0; j < slice.length; j++) {
+        const cur = arr[j]?.current;
+        if (!cur) continue;
+        if (typeof cur.wind_speed_10m === "number") slice[j].wind_speed = Math.round(cur.wind_speed_10m);
+        if (typeof cur.wind_direction_10m === "number") slice[j].wind_direction = degToCompass(cur.wind_direction_10m);
+      }
+    } catch {
+      // Leave wind null for this chunk on any transient failure.
+    }
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -126,6 +161,8 @@ Deno.serve(async (req: Request) => {
           longitude: lng,
           location_description: locParts.join(", ") || null,
           summary: summaryParts.join(" "),
+          wind_speed: null as number | null,
+          wind_direction: null as string | null,
           source: "NIFC WFIGS",
           source_url:
             `${WFIGS_URL}?where=${encodeURIComponent(`IrwinID = '${externalId}'`)}` +
@@ -146,6 +183,8 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    await attachWind(rows);
 
     // Snapshot the current state of these incidents so we can log what actually
     // changed (acreage, containment, severity, status) into the updates feed.
