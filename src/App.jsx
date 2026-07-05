@@ -112,6 +112,7 @@ export default function App() {
     createSource,
     updateSource,
     deleteSource,
+    verifySource,
   } = useDataSources()
   const {
     locations: keyLocations,
@@ -504,6 +505,7 @@ export default function App() {
         onCreate={createSource}
         onUpdate={updateSource}
         onDelete={deleteSource}
+        onVerify={verifySource}
       />
 
       <AddSocialAlertModal

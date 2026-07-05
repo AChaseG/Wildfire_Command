@@ -736,6 +736,20 @@
   border-radius: 10px;
 }
 
+.evac-banner.clear {
+  border-color: var(--border-strong);
+  border-left-color: #3fb950;
+  background: color-mix(in srgb, #3fb950 8%, transparent);
+}
+
+.evac-banner.clear .evac-icon {
+  color: #3fb950;
+}
+
+.evac-banner.clear .evac-level {
+  color: var(--text);
+}
+
 .evac-icon {
   flex-shrink: 0;
   display: grid;
@@ -2509,6 +2523,61 @@ a.detail-source-value:hover {
   font-size: 11px;
   color: var(--text-muted);
   line-height: 140%;
+}
+
+.source-verify-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.verify-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.verify-badge:hover:not(:disabled) {
+  background: var(--border);
+}
+
+.verify-badge:disabled {
+  cursor: default;
+}
+
+.source-verify-detail {
+  font-size: 10.5px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.verify-spinner {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1.6px solid currentColor;
+  border-top-color: transparent;
+  animation: verify-spin 0.7s linear infinite;
+}
+
+@keyframes verify-spin {
+  to { transform: rotate(360deg); }
 }
 
 .source-item-actions {

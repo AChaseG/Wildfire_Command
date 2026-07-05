@@ -52,6 +52,29 @@ export function useDataSources() {
     return data
   }, [])
 
+  const verifySource = useCallback(async (id, url) => {
+    setSources((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, verify_status: 'pending', verify_detail: null } : s)),
+    )
+    const { data, error } = await supabase.functions.invoke('verify-source', {
+      body: { id, url },
+    })
+    const failed = error || !data?.ok
+    const patch = failed
+      ? {
+          verify_status: 'error',
+          verify_detail: error?.message || data?.error || 'Verification failed.',
+          verify_checked_at: new Date().toISOString(),
+        }
+      : {
+          verify_status: data.status,
+          verify_detail: data.detail,
+          verify_checked_at: data.checked_at,
+        }
+    setSources((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)))
+    return patch.verify_status
+  }, [])
+
   const deleteSource = useCallback(async (id) => {
     const { error } = await mutate({
       table: 'data_sources', op: 'delete', match: { column: 'id', value: id },
@@ -63,5 +86,5 @@ export function useDataSources() {
     setSources((prev) => prev.filter((s) => s.id !== id))
   }, [])
 
-  return { sources, loading, error, refresh, createSource, updateSource, deleteSource }
+  return { sources, loading, error, refresh, createSource, updateSource, deleteSource, verifySource }
 }

@@ -63,7 +63,43 @@ const EMPTY_FORM = {
   description: '',
 }
 
-export default function DataSourcesModal({ open, onClose, sources, loading, onCreate, onUpdate, onDelete }) {
+const VERIFY_META = {
+  ok: { label: 'Reachable', color: '#3fb950' },
+  unreachable: { label: 'No data', color: '#f85149' },
+  error: { label: 'Error', color: '#f0a020' },
+  pending: { label: 'Checking…', color: '#58a6ff' },
+}
+
+function VerifyBadge({ source, onRecheck }) {
+  if (source.source_kind === 'kml') return null
+  const status = source.verify_status
+  const meta = status ? VERIFY_META[status] : null
+  const title = source.verify_detail
+    || (status ? '' : 'Not yet checked — click to verify data can be pulled.')
+  return (
+    <button
+      type="button"
+      className={`verify-badge ${status || 'unchecked'}`}
+      style={meta ? { color: meta.color, borderColor: `${meta.color}66` } : undefined}
+      onClick={() => onRecheck(source)}
+      disabled={status === 'pending'}
+      title={title}
+    >
+      {status === 'pending' ? (
+        <span className="verify-spinner" aria-hidden="true" />
+      ) : status === 'ok' ? (
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+      ) : status === 'unreachable' || status === 'error' ? (
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2 1 21h22L12 2zM12 9v5M12 17h.01" /></svg>
+      ) : (
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.2-8.5" /><path d="M21 4v5h-5" /></svg>
+      )}
+      {meta ? meta.label : 'Check'}
+    </button>
+  )
+}
+
+export default function DataSourcesModal({ open, onClose, sources, loading, onCreate, onUpdate, onDelete, onVerify }) {
   const [form, setForm] = useState(EMPTY_FORM)
   const [mode, setMode] = useState('url')
   const [kml, setKml] = useState({ content: null, features: 0, fileName: '', error: null })
@@ -181,10 +217,16 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
       : await onCreate({ ...payload, source_kind: 'url', enabled: true, is_default: false })
     setSaving(false)
     if (result) {
+      // Automatically confirm data can be pulled from the source's URL.
+      if (onVerify && result.id) onVerify(result.id, result.url || url)
       resetForm()
     } else {
       setErr(isEditing ? 'Failed to save changes.' : 'Failed to add source.')
     }
+  }
+
+  const recheck = (source) => {
+    if (onVerify && source.url) onVerify(source.id, source.url)
   }
 
   const toggleEnabled = async (source) => {
@@ -371,6 +413,14 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
                               >
                                 {source.url}
                               </a>
+                            )}
+                            {!isKml && (
+                              <div className="source-verify-row">
+                                <VerifyBadge source={source} onRecheck={recheck} />
+                                {source.verify_detail && (
+                                  <span className="source-verify-detail">{source.verify_detail}</span>
+                                )}
+                              </div>
                             )}
                             {source.description && (
                               <div className="source-desc">{source.description}</div>

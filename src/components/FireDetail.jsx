@@ -160,7 +160,7 @@ export default function FireDetail({ fire, onClose, relatedAlerts = [], keyLocat
         {fire.summary && <p className="detail-summary">{fire.summary}</p>}
       </div>
 
-      {evac && (
+      {evac ? (
         <div className="evac-banner" style={{ borderColor: evac.color, background: `${evac.color}1a` }}>
           <span className="evac-icon" style={{ color: evac.color }} aria-hidden="true">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
@@ -173,6 +173,19 @@ export default function FireDetail({ fire, onClose, relatedAlerts = [], keyLocat
             <div className="evac-note">
               {evac.note} · {evac.count} evacuation alert{evac.count === 1 ? '' : 's'} linked
             </div>
+          </div>
+        </div>
+      ) : (
+        <div className="evac-banner clear">
+          <span className="evac-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 12l2 2 4-4" />
+              <circle cx="12" cy="12" r="9" />
+            </svg>
+          </span>
+          <div className="evac-text">
+            <div className="evac-level">No Evacuation Order</div>
+            <div className="evac-note">No active evacuation alerts linked to this incident.</div>
           </div>
         </div>
       )}
