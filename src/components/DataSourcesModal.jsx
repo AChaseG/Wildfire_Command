@@ -61,6 +61,7 @@ const EMPTY_FORM = {
   url: '',
   category: 'official',
   description: '',
+  search_query: '',
 }
 
 const VERIFY_META = {
@@ -211,13 +212,14 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
   const startEdit = (source) => {
     setEditingId(source.id)
     setErr(null)
-    setMode(source.source_kind === 'kml' ? 'kml' : 'url')
+    setMode(source.source_kind === 'kml' ? 'kml' : source.source_kind === 'search' ? 'search' : 'url')
     setKml({ content: null, features: 0, fileName: '', error: null })
     setForm({
       name: source.name || '',
       url: source.url || '',
       category: source.category || 'official',
       description: source.description || '',
+      search_query: source.search_query || '',
     })
   }
 
@@ -242,6 +244,38 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
   const handleSubmit = async (e) => {
     e.preventDefault()
     setErr(null)
+
+    if (mode === 'search') {
+      const query = form.search_query.trim()
+      if (!form.name.trim()) {
+        setErr('A name is required.')
+        return
+      }
+      if (!query) {
+        setErr('Enter the keywords / boolean query to search for.')
+        return
+      }
+      const payload = {
+        name: form.name.trim(),
+        category: form.category,
+        description: form.description?.trim() || null,
+        source_kind: 'search',
+        search_query: query,
+        url: `https://www.bing.com/search?q=${encodeURIComponent(query)}`,
+      }
+      setSaving(true)
+      const result = isEditing
+        ? await onUpdate(editingId, payload)
+        : await onCreate({ ...payload, enabled: true, is_default: false })
+      setSaving(false)
+      if (result) {
+        if (onScrape) onScrape(result)
+        resetForm()
+      } else {
+        setErr(isEditing ? 'Failed to save changes.' : 'Failed to add search source.')
+      }
+      return
+    }
 
     if (mode === 'kml') {
       if (!form.name.trim()) {
@@ -366,6 +400,15 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
                 >
                   KML file
                 </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === 'search'}
+                  className={`source-mode-btn ${mode === 'search' ? 'active' : ''}`}
+                  onClick={() => setMode('search')}
+                >
+                  Search query
+                </button>
               </div>
             )}
 
@@ -376,7 +419,7 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
                   type="text"
                   value={form.name}
                   onChange={(e) => update('name', e.target.value)}
-                  placeholder={mode === 'kml' ? 'e.g. Evacuation Zones' : 'e.g. Local Fire Department'}
+                  placeholder={mode === 'kml' ? 'e.g. Evacuation Zones' : mode === 'search' ? 'e.g. WA evacuation chatter' : 'e.g. Local Fire Department'}
                   className="form-input"
                 />
               </label>
@@ -391,6 +434,18 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
                     placeholder="https://example.com"
                     className="form-input"
                   />
+                </label>
+              ) : mode === 'search' ? (
+                <label className="form-label form-label-wide">
+                  Keywords / boolean query
+                  <input
+                    type="text"
+                    value={form.search_query}
+                    onChange={(e) => update('search_query', e.target.value)}
+                    placeholder={'("wildfire" OR "brush fire") AND evacuation AND Washington'}
+                    className="form-input"
+                  />
+                  <span className="form-hint">Searched on Azure Bing; the top results are scraped for incidents.</span>
                 </label>
               ) : (
                 <label className="form-label">
@@ -465,6 +520,7 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
                   <ul className="source-list">
                     {group.items.map((source) => {
                       const isKml = source.source_kind === 'kml'
+                      const isSearch = source.source_kind === 'search'
                       const scraped = scrapedPages[source.id]
                       const isScraping = !!scrapeBusy[source.id]
                       const scrapeErr = scrapeErrors[source.id]
@@ -477,10 +533,16 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
                               <span className="source-name">{source.name}</span>
                               {source.is_default && <span className="source-badge">Built-in</span>}
                               {isKml && <span className="source-badge kml">KML</span>}
+                              {isSearch && <span className="source-badge search">Search</span>}
                             </div>
                             {isKml ? (
                               <div className="source-url kml-meta">
                                 {kmlCounts[source.id] ?? 0} geometr{kmlCounts[source.id] === 1 ? 'y' : 'ies'} · {source.visible === false ? 'hidden on map' : 'shown on map'}
+                              </div>
+                            ) : isSearch ? (
+                              <div className="source-search-meta">
+                                <code className="source-query">{source.search_query}</code>
+                                <a href={source.url} target="_blank" rel="noreferrer" className="source-query-link">Open on Bing</a>
                               </div>
                             ) : (
                               <a
@@ -492,7 +554,7 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
                                 {source.url}
                               </a>
                             )}
-                            {!isKml && (
+                            {!isKml && !isSearch && (
                               <div className="source-verify-row">
                                 <VerifyBadge source={source} onRecheck={recheck} />
                                 {source.verify_detail && (
@@ -523,7 +585,7 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
                               <button
                                 className={`source-scrape ${isScraping ? 'busy' : ''} ${scraped && scraped.status === 'ok' ? 'has-data' : ''}`}
                                 onClick={() => {
-                                  if (!scraped) onScrape(source.id, source.url)
+                                  if (!scraped) onScrape(source)
                                   setExpanded(isOpen ? null : source.id)
                                 }}
                                 disabled={isScraping}
@@ -566,7 +628,7 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
                                 <span className="scrape-toolbar-title">Extracted structured data</span>
                                 <button
                                   className="scrape-rerun"
-                                  onClick={() => onScrape(source.id, source.url)}
+                                  onClick={() => onScrape(source)}
                                   disabled={isScraping}
                                 >
                                   {isScraping ? 'Extracting…' : 'Re-extract'}

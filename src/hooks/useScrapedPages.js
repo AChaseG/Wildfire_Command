@@ -30,12 +30,15 @@ export function useScrapedPages() {
     }
   }, [])
 
-  const scrape = useCallback(async (sourceId, url) => {
+  const scrape = useCallback(async (source) => {
+    const sourceId = source.id
+    const isSearch = source.source_kind === 'search'
     setBusy((prev) => ({ ...prev, [sourceId]: true }))
     setErrors((prev) => ({ ...prev, [sourceId]: null }))
-    const { data, error } = await supabase.functions.invoke('scrape-source', {
-      body: { id: sourceId, url },
-    })
+    const { data, error } = await supabase.functions.invoke(
+      isSearch ? 'search-scrape' : 'scrape-source',
+      { body: isSearch ? { id: sourceId, query: source.search_query } : { id: sourceId, url: source.url } },
+    )
     setBusy((prev) => ({ ...prev, [sourceId]: false }))
 
     if (error || !data?.ok) {
@@ -50,8 +53,10 @@ export function useScrapedPages() {
   }, [])
 
   const scrapeAll = useCallback(async () => {
-    const { data, error } = await supabase.functions.invoke('scrape-source', { body: {} })
-    if (error || !data?.ok) return
+    await Promise.allSettled([
+      supabase.functions.invoke('scrape-source', { body: {} }),
+      supabase.functions.invoke('search-scrape', { body: {} }),
+    ])
     await reload()
   }, [reload])
 
