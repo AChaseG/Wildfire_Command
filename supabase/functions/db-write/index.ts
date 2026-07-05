@@ -31,8 +31,8 @@ const RULES: Record<string, TableRule> = {
     delete: { match: true },
   },
   data_sources: {
-    insert: { cols: ["name", "url", "category", "description", "enabled", "is_default"] },
-    update: { cols: ["name", "url", "category", "description", "enabled", "is_default"], match: true },
+    insert: { cols: ["name", "url", "category", "description", "enabled", "is_default", "source_kind", "kml_content", "visible"] },
+    update: { cols: ["name", "url", "category", "description", "enabled", "is_default", "source_kind", "kml_content", "visible"], match: true },
     delete: { match: true },
   },
   notification_settings: {

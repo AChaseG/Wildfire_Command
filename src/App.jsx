@@ -220,6 +220,11 @@ export default function App() {
 
   const enabledSources = useMemo(() => sources.filter((s) => s.enabled), [sources])
 
+  const kmlSources = useMemo(
+    () => sources.filter((s) => s.source_kind === 'kml' && s.visible !== false && s.kml_content),
+    [sources],
+  )
+
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -307,6 +312,7 @@ export default function App() {
               onBoundsChange={handleBoundsChange}
               showHeatmap={showHeatmap}
               riskCells={riskCells}
+              kmlSources={kmlSources}
             />
           )}
           <MapControls

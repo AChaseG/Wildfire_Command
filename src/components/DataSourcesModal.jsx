@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { SOURCE_CATEGORIES, CATEGORY_ORDER, categoryMeta } from '../lib/sourceUtils'
+import { parseKml, countGeometries } from '../lib/kmlUtils'
 
 function CategoryIcon({ name }) {
   const common = {
@@ -64,13 +65,27 @@ const EMPTY_FORM = {
 
 export default function DataSourcesModal({ open, onClose, sources, loading, onCreate, onUpdate, onDelete }) {
   const [form, setForm] = useState(EMPTY_FORM)
+  const [mode, setMode] = useState('url')
+  const [kml, setKml] = useState({ content: null, features: 0, fileName: '', error: null })
   const [editingId, setEditingId] = useState(null)
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState(null)
 
+  // Geometry counts for KML sources, parsed once per source list change.
+  const kmlCounts = useMemo(() => {
+    const map = {}
+    for (const s of sources) {
+      if (s.source_kind === 'kml' && s.kml_content) {
+        map[s.id] = countGeometries(parseKml(s.kml_content).features)
+      }
+    }
+    return map
+  }, [sources])
+
   if (!open) return null
 
   const isEditing = editingId !== null
+  const editingKml = isEditing && mode === 'kml'
 
   const update = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -78,6 +93,8 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
 
   const resetForm = () => {
     setForm(EMPTY_FORM)
+    setMode('url')
+    setKml({ content: null, features: 0, fileName: '', error: null })
     setEditingId(null)
     setErr(null)
   }
@@ -85,6 +102,8 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
   const startEdit = (source) => {
     setEditingId(source.id)
     setErr(null)
+    setMode(source.source_kind === 'kml' ? 'kml' : 'url')
+    setKml({ content: null, features: 0, fileName: '', error: null })
     setForm({
       name: source.name || '',
       url: source.url || '',
@@ -93,9 +112,57 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
     })
   }
 
+  const handleFile = async (file) => {
+    if (!file) return
+    if (!/\.kml$/i.test(file.name)) {
+      setKml({ content: null, features: 0, fileName: '', error: 'Please choose a .kml file.' })
+      return
+    }
+    const text = await file.text()
+    const { features, error } = parseKml(text)
+    if (error) {
+      setKml({ content: null, features: 0, fileName: file.name, error })
+      return
+    }
+    setKml({ content: text, features: countGeometries(features), fileName: file.name, error: null })
+    if (!form.name.trim()) {
+      update('name', file.name.replace(/\.kml$/i, ''))
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setErr(null)
+
+    if (mode === 'kml') {
+      if (!form.name.trim()) {
+        setErr('A name is required.')
+        return
+      }
+      if (!isEditing && !kml.content) {
+        setErr('Choose a valid KML file to upload.')
+        return
+      }
+      const payload = {
+        name: form.name.trim(),
+        category: form.category,
+        description: form.description?.trim() || null,
+        source_kind: 'kml',
+      }
+      if (kml.content) {
+        payload.kml_content = kml.content
+        payload.url = `kml://${kml.fileName || form.name.trim()}`
+      }
+      setSaving(true)
+      const result = isEditing
+        ? await onUpdate(editingId, payload)
+        : await onCreate({ ...payload, enabled: true, is_default: false, visible: true })
+      setSaving(false)
+      if (result) resetForm()
+      else setErr(isEditing ? 'Failed to save changes.' : 'Failed to add KML source.')
+      return
+    }
+
     if (!form.name.trim() || !form.url.trim()) {
       setErr('Name and URL are required.')
       return
@@ -111,7 +178,7 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
     setSaving(true)
     const result = isEditing
       ? await onUpdate(editingId, payload)
-      : await onCreate({ ...payload, enabled: true, is_default: false })
+      : await onCreate({ ...payload, source_kind: 'url', enabled: true, is_default: false })
     setSaving(false)
     if (result) {
       resetForm()
@@ -122,6 +189,10 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
 
   const toggleEnabled = async (source) => {
     await onUpdate(source.id, { enabled: !source.enabled })
+  }
+
+  const toggleVisible = async (source) => {
+    await onUpdate(source.id, { visible: source.visible === false })
   }
 
   const grouped = CATEGORY_ORDER.map((cat) => ({
@@ -136,7 +207,7 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
           <div>
             <h2>Data Sources</h2>
             <p className="modal-sub">
-              Manage the external data sources the tool retrieves wildfire and emergency information from. Toggle, edit, or add sources.
+              Manage the external data sources the tool retrieves wildfire and emergency information from. Add web feeds or upload KML files to overlay on the map.
             </p>
           </div>
           <button className="modal-close" onClick={onClose} aria-label="Close">
@@ -149,6 +220,30 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
         <div className="modal-body">
           <form className="rule-form" onSubmit={handleSubmit}>
             <h3 className="form-section-title">{isEditing ? 'Edit data source' : 'Add a data source'}</h3>
+
+            {!isEditing && (
+              <div className="source-mode-toggle" role="tablist">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === 'url'}
+                  className={`source-mode-btn ${mode === 'url' ? 'active' : ''}`}
+                  onClick={() => setMode('url')}
+                >
+                  Web feed / URL
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === 'kml'}
+                  className={`source-mode-btn ${mode === 'kml' ? 'active' : ''}`}
+                  onClick={() => setMode('kml')}
+                >
+                  KML file
+                </button>
+              </div>
+            )}
+
             <div className="form-grid">
               <label className="form-label">
                 Name
@@ -156,20 +251,34 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
                   type="text"
                   value={form.name}
                   onChange={(e) => update('name', e.target.value)}
-                  placeholder="e.g. Local Fire Department"
+                  placeholder={mode === 'kml' ? 'e.g. Evacuation Zones' : 'e.g. Local Fire Department'}
                   className="form-input"
                 />
               </label>
-              <label className="form-label">
-                URL
-                <input
-                  type="text"
-                  value={form.url}
-                  onChange={(e) => update('url', e.target.value)}
-                  placeholder="https://example.com"
-                  className="form-input"
-                />
-              </label>
+
+              {mode === 'url' ? (
+                <label className="form-label">
+                  URL
+                  <input
+                    type="text"
+                    value={form.url}
+                    onChange={(e) => update('url', e.target.value)}
+                    placeholder="https://example.com"
+                    className="form-input"
+                  />
+                </label>
+              ) : (
+                <label className="form-label">
+                  {editingKml ? 'Replace KML file (optional)' : 'KML file'}
+                  <input
+                    type="file"
+                    accept=".kml,application/vnd.google-earth.kml+xml"
+                    onChange={(e) => handleFile(e.target.files?.[0])}
+                    className="form-input file-input"
+                  />
+                </label>
+              )}
+
               <label className="form-label">
                 Category
                 <select value={form.category} onChange={(e) => update('category', e.target.value)} className="form-select">
@@ -189,13 +298,21 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
                 />
               </label>
             </div>
+
+            {mode === 'kml' && kml.error && <div className="form-error">{kml.error}</div>}
+            {mode === 'kml' && kml.content && (
+              <div className="kml-parse-note">
+                Parsed <strong>{kml.features}</strong> geometr{kml.features === 1 ? 'y' : 'ies'} from {kml.fileName}. It will be drawn on the map.
+              </div>
+            )}
+
             {err && <div className="form-error">{err}</div>}
             <div className="form-actions">
               <button type="button" className="btn-ghost" onClick={resetForm}>
                 {isEditing ? 'Cancel' : 'Reset'}
               </button>
               <button type="submit" className="btn-primary" disabled={saving}>
-                {saving ? 'Saving…' : isEditing ? 'Save changes' : 'Add source'}
+                {saving ? 'Saving…' : isEditing ? 'Save changes' : mode === 'kml' ? 'Add KML overlay' : 'Add source'}
               </button>
             </div>
           </form>
@@ -221,58 +338,73 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
                     <span className="source-group-count">{group.items.length}</span>
                   </div>
                   <ul className="source-list">
-                    {group.items.map((source) => (
-                      <li key={source.id} className={`source-item ${source.enabled ? '' : 'disabled'} ${editingId === source.id ? 'editing' : ''}`}>
-                        <div className="source-item-main">
-                          <div className="source-item-head">
-                            <span className="source-name">{source.name}</span>
-                            {source.is_default && <span className="source-badge">Built-in</span>}
+                    {group.items.map((source) => {
+                      const isKml = source.source_kind === 'kml'
+                      return (
+                        <li key={source.id} className={`source-item ${(isKml ? source.visible !== false : source.enabled) ? '' : 'disabled'} ${editingId === source.id ? 'editing' : ''}`}>
+                          <div className="source-item-main">
+                            <div className="source-item-head">
+                              <span className="source-name">{source.name}</span>
+                              {source.is_default && <span className="source-badge">Built-in</span>}
+                              {isKml && <span className="source-badge kml">KML</span>}
+                            </div>
+                            {isKml ? (
+                              <div className="source-url kml-meta">
+                                {kmlCounts[source.id] ?? 0} geometr{kmlCounts[source.id] === 1 ? 'y' : 'ies'} · {source.visible === false ? 'hidden on map' : 'shown on map'}
+                              </div>
+                            ) : (
+                              <a
+                                href={source.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="source-url"
+                              >
+                                {source.url}
+                              </a>
+                            )}
+                            {source.description && (
+                              <div className="source-desc">{source.description}</div>
+                            )}
                           </div>
-                          <a
-                            href={source.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="source-url"
-                          >
-                            {source.url}
-                          </a>
-                          {source.description && (
-                            <div className="source-desc">{source.description}</div>
-                          )}
-                        </div>
-                        <div className="source-item-actions">
-                          <button
-                            className="rule-toggle"
-                            onClick={() => toggleEnabled(source)}
-                            aria-label={source.enabled ? 'Disable source' : 'Enable source'}
-                          >
-                            <span className={`toggle-track ${source.enabled ? 'on' : ''}`}>
-                              <span className="toggle-thumb" />
-                            </span>
-                          </button>
-                          <button
-                            className="source-edit"
-                            onClick={() => startEdit(source)}
-                            aria-label="Edit source"
-                          >
-                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                            </svg>
-                          </button>
-                          {!source.is_default && (
+                          <div className="source-item-actions">
                             <button
-                              className="rule-delete"
-                              onClick={() => onDelete(source.id)}
-                              aria-label="Delete source"
+                              className="rule-toggle"
+                              onClick={() => (isKml ? toggleVisible(source) : toggleEnabled(source))}
+                              aria-label={
+                                isKml
+                                  ? (source.visible === false ? 'Show overlay on map' : 'Hide overlay on map')
+                                  : (source.enabled ? 'Disable source' : 'Enable source')
+                              }
+                              title={isKml ? 'Show / hide this overlay on the map' : 'Enable / disable this source'}
+                            >
+                              <span className={`toggle-track ${(isKml ? source.visible !== false : source.enabled) ? 'on' : ''}`}>
+                                <span className="toggle-thumb" />
+                              </span>
+                            </button>
+                            <button
+                              className="source-edit"
+                              onClick={() => startEdit(source)}
+                              aria-label="Edit source"
                             >
                               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
+                                <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
                               </svg>
                             </button>
-                          )}
-                        </div>
-                      </li>
-                    ))}
+                            {!source.is_default && (
+                              <button
+                                className="rule-delete"
+                                onClick={() => onDelete(source.id)}
+                                aria-label="Delete source"
+                              >
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        </li>
+                      )
+                    })}
                   </ul>
                 </div>
               )

@@ -1469,35 +1469,6 @@ a.detail-source-value:hover {
 }
 
 /* ---------- Alerts feed ---------- */
-.alerts-feed {
-  display: flex;
-  flex-direction: column;
-  padding: 16px;
-  flex: 1;
-  overflow-y: auto;
-}
-
-.alerts-head {
-  margin-bottom: 12px;
-}
-
-.alerts-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.alerts-head h3 {
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 1.2px;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .alerts-badge {
   font-size: 11px;
   background: var(--primary);
@@ -2373,6 +2344,77 @@ a.detail-source-value:hover {
   font-weight: 600;
 }
 
+.source-badge.kml {
+  background: rgba(88, 166, 255, 0.12);
+  border-color: rgba(88, 166, 255, 0.35);
+  color: var(--info, #58a6ff);
+}
+
+.source-mode-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 8px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+
+.source-mode-btn {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.source-mode-btn:hover {
+  color: var(--text);
+}
+
+.source-mode-btn.active {
+  background: var(--bg-elev-2);
+  color: var(--text-h, var(--text));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.file-input {
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.file-input::file-selector-button {
+  margin-right: 10px;
+  padding: 4px 10px;
+  border-radius: 5px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elev-2);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.kml-parse-note {
+  font-size: 12px;
+  color: var(--success, #3fb950);
+  background: rgba(63, 185, 80, 0.08);
+  border: 1px solid rgba(63, 185, 80, 0.25);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-top: 4px;
+}
+
+.source-url.kml-meta {
+  color: var(--text-muted);
+  font-family: inherit;
+}
+
 .source-url {
   display: block;
   font-size: 11px;
@@ -2710,7 +2752,8 @@ a.detail-source-value:hover {
 .alerts-feed {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -2728,8 +2771,11 @@ a.detail-source-value:hover {
 }
 
 .alerts-title-row h3 {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--text-muted);
   display: flex;
   align-items: center;
   gap: 6px;

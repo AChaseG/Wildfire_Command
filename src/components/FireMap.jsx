@@ -4,6 +4,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { SEVERITY_META, aqiCategory, formatDateTime } from '../lib/fireUtils'
 import { MAP_LAYERS, LABELS_OVERLAY_URL } from '../lib/mapLayers'
+import { parseKml } from '../lib/kmlUtils'
 import MeasureTool, { MEASURE_MODES } from './MeasureTool'
 import LocationSearch from './LocationSearch'
 
@@ -208,6 +209,53 @@ function RiskHeatLayer({ cells }) {
   return null
 }
 
+const KML_PALETTE = ['#58a6ff', '#3fb950', '#f0a020', '#f85149', '#26c6da', '#ec4899']
+
+function KmlOverlay({ sources }) {
+  const map = useMap()
+  // Signature so the layer only rebuilds when the visible KML set actually changes.
+  const signature = useMemo(
+    () => sources.map((s) => `${s.id}:${(s.kml_content || '').length}`).join('|'),
+    [sources],
+  )
+  useEffect(() => {
+    const group = L.layerGroup().addTo(map)
+    sources.forEach((source, idx) => {
+      const { features } = parseKml(source.kml_content)
+      const color = KML_PALETTE[idx % KML_PALETTE.length]
+      for (const feature of features) {
+        for (const geom of feature.geometries) {
+          let layer = null
+          if (geom.type === 'polygon') {
+            layer = L.polygon(geom.coords, { color, weight: 2, fillColor: color, fillOpacity: 0.15 })
+          } else if (geom.type === 'line') {
+            layer = L.polyline(geom.coords, { color, weight: 3, opacity: 0.85 })
+          } else if (geom.type === 'point') {
+            layer = L.circleMarker(geom.latlng, {
+              radius: 5,
+              color: '#fff',
+              weight: 1.5,
+              fillColor: color,
+              fillOpacity: 1,
+            })
+          }
+          if (layer) {
+            layer.bindTooltip(
+              `<div class="map-tooltip"><div class="map-tooltip-name">${feature.name}</div><div class="map-tooltip-row" style="opacity:0.7">${source.name}</div></div>`,
+              { direction: 'top', opacity: 1 },
+            )
+            layer.addTo(group)
+          }
+        }
+      }
+    })
+    return () => {
+      group.remove()
+    }
+  }, [map, signature]) // eslint-disable-line react-hooks/exhaustive-deps
+  return null
+}
+
 export default function FireMap({
   fires,
   selectedId,
@@ -221,6 +269,7 @@ export default function FireMap({
   onBoundsChange,
   showHeatmap = false,
   riskCells = [],
+  kmlSources = [],
 }) {
   const layer = useMemo(
     () => MAP_LAYERS.find((l) => l.id === layerId) || MAP_LAYERS[0],
@@ -264,6 +313,7 @@ export default function FireMap({
       <FavoritePlacer active={placingFavorite} onPlace={onPlaceFavorite} />
       <BoundsWatcher onBoundsChange={onBoundsChange} />
       {showHeatmap && <RiskHeatLayer cells={riskCells} />}
+      {kmlSources.length > 0 && <KmlOverlay sources={kmlSources} />}
       <LocationSearch />
 
       {fires.map((fire) => {
