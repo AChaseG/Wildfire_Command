@@ -123,51 +123,76 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => null);
     const id = body?.id;
     const url = body?.url;
-    if (!id || typeof id !== "string" || !url || typeof url !== "string") {
-      return json({ ok: false, error: "'id' and 'url' are required." }, 400);
-    }
-
-    let parsed: URL;
-    try {
-      parsed = new URL(url);
-    } catch {
-      return json({ ok: false, error: "Malformed URL." }, 400);
-    }
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      return json({ ok: false, error: "URL must use http or https." }, 400);
-    }
-
-    const result = await scrape(url, parsed.origin);
 
     const db = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const row = {
-      data_source_id: id,
-      title: result.status === "ok" ? result.title : null,
-      description: result.status === "ok" ? result.description : null,
-      item_count: result.status === "ok" ? result.item_count : 0,
-      data: result.status === "ok" ? result.data : {},
-      status: result.status,
-      error: result.status === "error" ? result.error : null,
-      scraped_at: new Date().toISOString(),
-    };
+    // Batch mode: no explicit id/url -> scrape every enabled URL source.
+    if (!id || !url) {
+      const { data: sources, error } = await db
+        .from("data_sources")
+        .select("id, url")
+        .eq("enabled", true)
+        .eq("source_kind", "url");
+      if (error) return json({ ok: false, error: error.message }, 400);
 
-    const { data, error } = await db
-      .from("scraped_pages")
-      .upsert(row, { onConflict: "data_source_id" })
-      .select()
-      .single();
-    if (error) return json({ ok: false, error: error.message }, 400);
+      const results = await Promise.allSettled(
+        (sources || []).map((s: { id: string; url: string }) => scrapeAndStore(db, s.id, s.url)),
+      );
+      const scraped = results.filter((r) => r.status === "fulfilled").length;
+      return json({ ok: true, scraped, total: sources?.length || 0 }, 200);
+    }
 
-    return json({ ok: true, page: data }, 200);
+    // Single mode (manual UI trigger).
+    if (typeof id !== "string" || typeof url !== "string") {
+      return json({ ok: false, error: "'id' and 'url' must be strings." }, 400);
+    }
+    const page = await scrapeAndStore(db, id, url);
+    if (!page) return json({ ok: false, error: "Could not store scrape result." }, 400);
+    return json({ ok: true, page }, 200);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return json({ ok: false, error: msg }, 500);
   }
 });
+
+// deno-lint-ignore no-explicit-any
+async function scrapeAndStore(db: any, id: string, url: string) {
+  let origin: string;
+  let result: Awaited<ReturnType<typeof scrape>>;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      result = { status: "error", error: "URL must use http or https." };
+    } else {
+      origin = parsed.origin;
+      result = await scrape(url, origin);
+    }
+  } catch {
+    result = { status: "error", error: "Malformed URL." };
+  }
+
+  const row = {
+    data_source_id: id,
+    title: result.status === "ok" ? result.title : null,
+    description: result.status === "ok" ? result.description : null,
+    item_count: result.status === "ok" ? result.item_count : 0,
+    data: result.status === "ok" ? result.data : {},
+    status: result.status,
+    error: result.status === "error" ? result.error : null,
+    scraped_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await db
+    .from("scraped_pages")
+    .upsert(row, { onConflict: "data_source_id" })
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return data;
+}
 
 function json(payload: unknown, status: number) {
   return new Response(JSON.stringify(payload), {

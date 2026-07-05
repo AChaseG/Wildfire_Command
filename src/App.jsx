@@ -115,7 +115,7 @@ export default function App() {
     deleteSource,
     verifySource,
   } = useDataSources()
-  const { pages: scrapedPages, busy: scrapeBusy, errors: scrapeErrors, scrape: scrapeSource } = useScrapedPages()
+  const { pages: scrapedPages, busy: scrapeBusy, errors: scrapeErrors, scrape: scrapeSource, scrapeAll } = useScrapedPages()
   const {
     locations: keyLocations,
     loading: keyLocLoading,
@@ -209,6 +209,14 @@ export default function App() {
     const id = setInterval(scanAllSources, 120000)
     return () => clearInterval(id)
   }, [scanAllSources])
+
+  // Auto-extract structured data from every enabled URL source. Pages change
+  // slowly, so run on a longer cadence than the alert scan.
+  useEffect(() => {
+    scrapeAll()
+    const id = setInterval(scrapeAll, 900000)
+    return () => clearInterval(id)
+  }, [scrapeAll])
 
   const handlePlaceFavorite = useCallback((coord) => {
     setPendingFavorite(coord)

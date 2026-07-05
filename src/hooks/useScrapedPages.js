@@ -6,6 +6,14 @@ export function useScrapedPages() {
   const [busy, setBusy] = useState({})
   const [errors, setErrors] = useState({})
 
+  const reload = useCallback(async () => {
+    const { data } = await supabase.from('scraped_pages').select('*')
+    if (!data) return
+    const byId = {}
+    for (const row of data) byId[row.data_source_id] = row
+    setPages(byId)
+  }, [])
+
   useEffect(() => {
     let active = true
     supabase
@@ -41,5 +49,11 @@ export function useScrapedPages() {
     return data.page
   }, [])
 
-  return { pages, busy, errors, scrape }
+  const scrapeAll = useCallback(async () => {
+    const { data, error } = await supabase.functions.invoke('scrape-source', { body: {} })
+    if (error || !data?.ok) return
+    await reload()
+  }, [reload])
+
+  return { pages, busy, errors, scrape, scrapeAll, reload }
 }
