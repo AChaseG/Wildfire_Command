@@ -187,6 +187,7 @@ export default function App() {
       await Promise.allSettled([
         fetch(`${base}/functions/v1/fetch-external-alerts`, { method: 'POST', headers }),
         fetch(`${base}/functions/v1/scan-social-feeds`, { method: 'POST', headers }),
+        fetch(`${base}/functions/v1/fetch-nasa-firms`, { method: 'POST', headers }),
       ])
       // Realtime pushes new rows, but refresh guards against missed events.
       refreshAlerts()

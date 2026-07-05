@@ -195,6 +195,16 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
     await onUpdate(source.id, { visible: source.visible === false })
   }
 
+  const handleDelete = (source) => {
+    const msg = source.is_default
+      ? `Delete the built-in source "${source.name}"? This cannot be undone.`
+      : `Delete "${source.name}"?`
+    if (window.confirm(msg)) {
+      if (editingId === source.id) resetForm()
+      onDelete(source.id)
+    }
+  }
+
   const grouped = CATEGORY_ORDER.map((cat) => ({
     category: cat,
     items: sources.filter((s) => s.category === cat),
@@ -390,17 +400,16 @@ export default function DataSourcesModal({ open, onClose, sources, loading, onCr
                                 <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
                               </svg>
                             </button>
-                            {!source.is_default && (
-                              <button
-                                className="rule-delete"
-                                onClick={() => onDelete(source.id)}
-                                aria-label="Delete source"
-                              >
-                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
-                                </svg>
-                              </button>
-                            )}
+                            <button
+                              className="rule-delete"
+                              onClick={() => handleDelete(source)}
+                              aria-label="Delete source"
+                              title={source.is_default ? 'Delete built-in source' : 'Delete source'}
+                            >
+                              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
+                              </svg>
+                            </button>
                           </div>
                         </li>
                       )
