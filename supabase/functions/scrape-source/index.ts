@@ -17,12 +17,66 @@ function clean(text: string | null | undefined): string {
   return (text || "").replace(/\s+/g, " ").trim();
 }
 
+function titleCaseName(s: string): string {
+  return s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+type Incident = {
+  name: string;
+  acres: string | null;
+  containment: number | null;
+  location?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+};
+
+// Many wildfire trackers (e.g. WFCA) are Next.js apps that embed the incident
+// record as JSON in a __NEXT_DATA__ script. When present, parse it directly for
+// reliable structured data instead of guessing from rendered text.
+// deno-lint-ignore no-explicit-any
+function extractNextDataIncidents(html: string): Incident[] | null {
+  const m = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+  if (!m) return null;
+  let parsed: any;
+  try {
+    parsed = JSON.parse(m[1]);
+  } catch {
+    return null;
+  }
+  const props = parsed?.props?.pageProps;
+  if (!props) return null;
+  const list: any[] = Array.isArray(props.fires)
+    ? props.fires
+    : props.ssrFire
+    ? [props.ssrFire]
+    : props.fire
+    ? [props.fire]
+    : [];
+  const incidents: Incident[] = [];
+  for (const f of list) {
+    const rawName = f?.incidentname;
+    if (!rawName) continue;
+    const name = titleCaseName(String(rawName));
+    const county = f.poocounty ? `${f.poocounty} County` : "";
+    const state = f.poostate ? String(f.poostate).replace(/^US-/, "") : "";
+    incidents.push({
+      name: /fire|complex|incident/i.test(name) ? name : `${name} Fire`,
+      acres: f.acres != null ? String(Math.round(Number(f.acres))) : null,
+      containment: f.percentcontained != null ? Math.min(100, Math.round(Number(f.percentcontained))) : null,
+      location: [county, state].filter(Boolean).join(", ") || null,
+      lat: typeof f.lat === "number" ? f.lat : null,
+      lng: typeof f.lng === "number" ? f.lng : null,
+    });
+  }
+  return incidents.length ? incidents : null;
+}
+
 // Detect wildfire incidents in the page text: named fires plus any acreage /
 // containment figures that appear near the name.
-function extractIncidents(text: string) {
+function extractIncidents(text: string): Incident[] {
   const nameRe = /([A-Z][A-Za-z0-9.'\-]*(?:\s+[A-Za-z0-9.'\-]+){0,5}?\s(?:Fire|Complex|Incident))/g;
   const seen = new Set<string>();
-  const incidents: { name: string; acres: string | null; containment: number | null }[] = [];
+  const incidents: Incident[] = [];
 
   let m: RegExpExecArray | null;
   while ((m = nameRe.exec(text)) !== null && incidents.length < MAX_INCIDENTS) {
@@ -98,7 +152,7 @@ async function scrape(url: string, baseUrl: string) {
     }
 
     const bodyText = clean(doc.querySelector("body")?.textContent).slice(0, 200000);
-    const incidents = extractIncidents(bodyText);
+    const incidents = extractNextDataIncidents(html) ?? extractIncidents(bodyText);
 
     return {
       status: "ok" as const,

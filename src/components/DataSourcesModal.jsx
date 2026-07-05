@@ -131,6 +131,7 @@ function ScrapedPanel({ page, error }) {
             {incidents.slice(0, 12).map((inc, i) => (
               <li key={i} className="scrape-incident">
                 <span className="scrape-inc-name">{inc.name}</span>
+                {inc.location && <span className="scrape-inc-tag loc">{inc.location}</span>}
                 {inc.acres && <span className="scrape-inc-tag">{Number(inc.acres).toLocaleString()} ac</span>}
                 {inc.containment != null && <span className="scrape-inc-tag contain">{inc.containment}% contained</span>}
               </li>
