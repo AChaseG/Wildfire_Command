@@ -750,6 +750,33 @@
   color: var(--text);
 }
 
+.evac-banner.unknown {
+  border-color: var(--border-strong);
+  border-left-color: var(--text-dim, #8b949e);
+  background: var(--bg-elev-2);
+}
+
+.evac-banner.unknown .evac-icon {
+  color: var(--text-dim, #8b949e);
+}
+
+.evac-banner.unknown .evac-level {
+  color: var(--text);
+}
+
+.evac-source-link {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--info, #58a6ff);
+  text-decoration: none;
+}
+
+.evac-source-link:hover {
+  text-decoration: underline;
+}
+
 .evac-icon {
   flex-shrink: 0;
   display: grid;

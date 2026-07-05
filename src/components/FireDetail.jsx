@@ -176,16 +176,27 @@ export default function FireDetail({ fire, onClose, relatedAlerts = [], keyLocat
           </div>
         </div>
       ) : (
-        <div className="evac-banner clear">
+        <div className="evac-banner unknown">
           <span className="evac-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 12l2 2 4-4" />
               <circle cx="12" cy="12" r="9" />
+              <path d="M9.5 9a2.5 2.5 0 0 1 4.5 1.5c0 1.5-2 2-2 3M12 17h.01" />
             </svg>
           </span>
           <div className="evac-text">
-            <div className="evac-level">No Evacuation Order</div>
-            <div className="evac-note">No active evacuation alerts linked to this incident.</div>
+            <div className="evac-level">Evacuation status unconfirmed</div>
+            <div className="evac-note">
+              No evacuation orders have been ingested for this incident. This does not mean the
+              area is clear — verify current orders with official sources.
+            </div>
+            <a
+              className="evac-source-link"
+              href={`https://www.bing.com/search?q=${encodeURIComponent(`${fire.name} evacuation order`)}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Check official evacuation orders
+            </a>
           </div>
         </div>
       )}

@@ -129,7 +129,7 @@ Deno.serve(async (req: Request) => {
           source: "NIFC WFIGS",
           source_url:
             `${WFIGS_URL}?where=${encodeURIComponent(`IrwinID = '${externalId}'`)}` +
-            `&outFields=*&outSR=4326&f=json`,
+            `&outFields=*&outSR=4326&f=html`,
           updated_at: new Date().toISOString(),
         };
       })
