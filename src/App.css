@@ -357,6 +357,10 @@
   border-radius: 50%;
 }
 
+.legend-item .dot.ring {
+  box-shadow: 0 0 0 1.5px #fff;
+}
+
 .legend-note {
   font-size: 10px;
   color: var(--text-dim);

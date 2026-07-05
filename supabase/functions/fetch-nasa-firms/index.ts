@@ -16,6 +16,24 @@ const FIRMS_SOURCE = "VIIRS_SNPP_NRT"
 const FIRMS_AREA = "-130,30,-100,52"
 const DAY_RANGE = 1
 const MAX_DETECTIONS = 25
+// NASA FIRMS enforces a rolling transaction quota; keep our own usage capped
+// well under it. Each area/status request counts as one transaction.
+const TRANSACTION_CAP = 5000
+
+async function transactionCount(mapKey: string): Promise<number | null> {
+  try {
+    const res = await fetch(
+      `https://firms.modaps.eosdis.nasa.gov/mapserver/mapkey_status/?MAP_KEY=${mapKey}`,
+      { headers: { "User-Agent": "WildfireCommand/1.0" } },
+    )
+    if (!res.ok) return null
+    const status = await res.json()
+    const current = Number(status?.current_transactions)
+    return Number.isFinite(current) ? current : null
+  } catch {
+    return null
+  }
+}
 
 function csvRows(text: string): Record<string, string>[] {
   const lines = text.trim().split(/\r?\n/)
@@ -51,6 +69,21 @@ Deno.serve(async (req: Request) => {
           configured: false,
           message:
             "NASA FIRMS is not configured. Add a free FIRMS_MAP_KEY secret (https://firms.modaps.eosdis.nasa.gov/api/map_key/) to start pulling active-fire detections.",
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      )
+    }
+
+    // Enforce the transaction quota before spending a data request.
+    const current = await transactionCount(mapKey)
+    if (current != null && current >= TRANSACTION_CAP) {
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          configured: true,
+          throttled: true,
+          current_transactions: current,
+          message: `Skipped: NASA FIRMS transaction count (${current}) is at the ${TRANSACTION_CAP}/10-min cap.`,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       )

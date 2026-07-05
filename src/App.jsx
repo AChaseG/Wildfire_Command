@@ -226,6 +226,11 @@ export default function App() {
     [sources],
   )
 
+  const firmsDetections = useMemo(
+    () => alerts.filter((a) => a.source === 'NASA FIRMS' && a.latitude != null && a.longitude != null),
+    [alerts],
+  )
+
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -314,6 +319,7 @@ export default function App() {
               showHeatmap={showHeatmap}
               riskCells={riskCells}
               kmlSources={kmlSources}
+              firmsDetections={firmsDetections}
             />
           )}
           <MapControls
@@ -346,7 +352,12 @@ export default function App() {
               <span className="legend-item"><span className="dot" style={{ background: '#f85149' }} /> High</span>
               <span className="legend-item"><span className="dot" style={{ background: '#a01a1a' }} /> Extreme</span>
             </div>
-            <div className="legend-note">Uniform flame markers, colored by severity. Data: GDACS, NASA FIRMS, Copernicus EMS, Wildfire.gov, and regional agencies worldwide.</div>
+            {firmsDetections.length > 0 && (
+              <div className="legend-items">
+                <span className="legend-item"><span className="dot ring" style={{ background: '#f97316' }} /> NASA FIRMS hotspot ({firmsDetections.length})</span>
+              </div>
+            )}
+            <div className="legend-note">Flame markers are incidents (colored by severity); small dots are live NASA FIRMS satellite hotspots. Data: GDACS, NASA FIRMS, Reddit, and regional agencies worldwide.</div>
           </div>
           {showHeatmap && (
             <div className="heat-legend">

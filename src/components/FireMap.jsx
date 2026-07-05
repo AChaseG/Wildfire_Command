@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { MapContainer, TileLayer, Tooltip, useMap, Marker, useMapEvents } from 'react-leaflet'
+import { MapContainer, TileLayer, Tooltip, useMap, Marker, useMapEvents, CircleMarker } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { SEVERITY_META, aqiCategory, formatDateTime } from '../lib/fireUtils'
@@ -209,6 +209,13 @@ function RiskHeatLayer({ cells }) {
   return null
 }
 
+const FIRMS_COLORS = {
+  urgent: '#f85149',
+  high: '#f97316',
+  medium: '#f0a020',
+  low: '#f0d000',
+}
+
 const KML_PALETTE = ['#58a6ff', '#3fb950', '#f0a020', '#f85149', '#26c6da', '#ec4899']
 
 function KmlOverlay({ sources }) {
@@ -270,6 +277,7 @@ export default function FireMap({
   showHeatmap = false,
   riskCells = [],
   kmlSources = [],
+  firmsDetections = [],
 }) {
   const layer = useMemo(
     () => MAP_LAYERS.find((l) => l.id === layerId) || MAP_LAYERS[0],
@@ -370,6 +378,31 @@ export default function FireMap({
           </Tooltip>
         </Marker>
       ))}
+
+      {firmsDetections.map((d) => {
+        const color = FIRMS_COLORS[d.severity] || FIRMS_COLORS.low
+        return (
+          <CircleMarker
+            key={d.id}
+            center={[d.latitude, d.longitude]}
+            radius={5}
+            pathOptions={{ color: '#fff', weight: 1, fillColor: color, fillOpacity: 0.9 }}
+          >
+            <Tooltip direction="top" offset={[0, -6]} opacity={1}>
+              <div className="map-tooltip">
+                <div className="map-tooltip-name">NASA FIRMS hotspot</div>
+                <div className="map-tooltip-row">
+                  <span className="dot" style={{ background: color }} />
+                  {d.severity} · thermal anomaly
+                </div>
+                <div className="map-tooltip-time">
+                  {d.latitude.toFixed(3)}, {d.longitude.toFixed(3)}
+                </div>
+              </div>
+            </Tooltip>
+          </CircleMarker>
+        )
+      })}
 
       <MeasureTool mode={measureMode} onClear={onClearMeasure} />
     </MapContainer>
