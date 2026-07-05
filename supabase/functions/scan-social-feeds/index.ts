@@ -30,8 +30,22 @@ function extractAttr(xml: string, tag: string, attr: string): string {
 
 function parseItems(xml: string): Array<Record<string, string>> {
   const items: Array<Record<string, string>> = [];
-  const itemRe = /<item[\s>]([\s\S]*?)<\/item>/gi;
+  // Reddit's ".rss" endpoint actually serves an Atom feed (<entry> elements
+  // with <link href="…"/> and <content>), while classic RSS uses <item>.
+  // Support both so the parser doesn't silently return nothing.
+  const entryRe = /<entry[\s>]([\s\S]*?)<\/entry>/gi;
   let m: RegExpExecArray | null;
+  while ((m = entryRe.exec(xml)) !== null) {
+    const block = m[1];
+    items.push({
+      title: extractTag(block, "title"),
+      description: extractTag(block, "content") || extractTag(block, "summary"),
+      link: extractAttr(block, "link", "href") || extractTag(block, "link"),
+      pubDate: extractTag(block, "published") || extractTag(block, "updated"),
+      author: extractTag(block, "name") || extractTag(block, "author"),
+    });
+  }
+  const itemRe = /<item[\s>]([\s\S]*?)<\/item>/gi;
   while ((m = itemRe.exec(xml)) !== null) {
     const block = m[1];
     items.push({

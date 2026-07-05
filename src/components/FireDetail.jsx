@@ -81,6 +81,13 @@ export default function FireDetail({ fire, onClose, relatedAlerts = [], keyLocat
   const status = STATUS_META[fire.status] || STATUS_META.active
   const aqi = aqiCategory(fire.air_quality)
 
+  const lat = Number(fire.latitude)
+  const lng = Number(fire.longitude)
+  const hasCoords = Number.isFinite(lat) && Number.isFinite(lng)
+  const coordLabel = hasCoords
+    ? `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`
+    : '—'
+
   const distancesToLocations = keyLocations.map((loc) => ({
     loc,
     dist: haversine(
@@ -160,6 +167,7 @@ export default function FireDetail({ fire, onClose, relatedAlerts = [], keyLocat
         <Stat label="Ended" value={formatDateTime(fire.ended_at)} />
         <Stat label="Duration" value={fireDuration(fire.started_at, fire.ended_at)} />
         <Stat label="Air Quality (AQI)" value={fire.air_quality ?? '—'} accent={aqi.color} />
+        <Stat label="Coordinates" value={coordLabel} />
       </div>
 
       <div className="cause-row">
@@ -173,7 +181,7 @@ export default function FireDetail({ fire, onClose, relatedAlerts = [], keyLocat
       </div>
 
       <div className="detail-coords">
-        <span>{fire.latitude?.toFixed(4)}, {fire.longitude?.toFixed(4)}</span>
+        <span>{coordLabel}</span>
       </div>
 
       {fire.source && (

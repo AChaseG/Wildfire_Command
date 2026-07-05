@@ -54,6 +54,32 @@ function severityFromFrp(frp: number): "urgent" | "high" | "medium" | "low" {
   return "low"
 }
 
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371
+  const toRad = (d: number) => (d * Math.PI) / 180
+  const dLat = toRad(lat2 - lat1)
+  const dLng = toRad(lng2 - lng1)
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)))
+}
+
+type FireLoc = { id: string; latitude: number | string; longitude: number | string }
+
+function nearestFireId(fires: FireLoc[], lat: number, lng: number, maxKm: number): string | null {
+  let best: string | null = null
+  let bestD = Infinity
+  for (const f of fires) {
+    const d = haversineKm(lat, lng, Number(f.latitude), Number(f.longitude))
+    if (d < bestD) {
+      bestD = d
+      best = f.id
+    }
+  }
+  return bestD <= maxKm ? best : null
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders })
@@ -116,6 +142,19 @@ Deno.serve(async (req: Request) => {
       .sort((a, b) => b.frp - a.frp)
       .slice(0, MAX_DETECTIONS)
 
+    const db = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    )
+
+    // Load active incidents so each hotspot can be attributed to the fire it
+    // most likely belongs to (a FIRMS pixel sits right on the burning area).
+    const { data: fires } = await db
+      .from("wildfires")
+      .select("id,latitude,longitude")
+      .neq("status", "out")
+    const fireLocs: FireLoc[] = fires ?? []
+
     const detections = rows.map((r) => {
       // Stable synthetic key so re-scans don't create duplicates.
       const key = `firms://${r.lat.toFixed(3)},${r.lng.toFixed(3)}@${r.acqDate}T${r.acqTime}`
@@ -132,15 +171,11 @@ Deno.serve(async (req: Request) => {
         source_type: "rss" as const,
         latitude: r.lat,
         longitude: r.lng,
+        fire_id: nearestFireId(fireLocs, r.lat, r.lng, 20),
         content_url: key,
         generated_at: Number.isNaN(generated.getTime()) ? new Date().toISOString() : generated.toISOString(),
       }
     })
-
-    const db = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    )
 
     let inserted = 0
     if (detections.length > 0) {

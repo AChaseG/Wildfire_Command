@@ -77,6 +77,32 @@ function isFireRelated(item: string): boolean {
   )
 }
 
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371
+  const toRad = (d: number) => (d * Math.PI) / 180
+  const dLat = toRad(lat2 - lat1)
+  const dLng = toRad(lng2 - lng1)
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)))
+}
+
+type FireLoc = { id: string; latitude: number | string; longitude: number | string }
+
+function nearestFireId(fires: FireLoc[], lat: number, lng: number, maxKm: number): string | null {
+  let best: string | null = null
+  let bestD = Infinity
+  for (const f of fires) {
+    const d = haversineKm(lat, lng, Number(f.latitude), Number(f.longitude))
+    if (d < bestD) {
+      bestD = d
+      best = f.id
+    }
+  }
+  return bestD <= maxKm ? best : null
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders })
@@ -86,6 +112,14 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     const db = createClient(supabaseUrl, serviceKey)
+
+    // Active incidents, so a georeferenced GDACS event can be attributed to a
+    // nearby tracked fire and surface in that incident's alert feed.
+    const { data: fireData } = await db
+      .from("wildfires")
+      .select("id,latitude,longitude")
+      .neq("status", "out")
+    const fireLocs: FireLoc[] = fireData ?? []
 
     // Fetch GDACS RSS
     const rssRes = await fetch(GDACS_RSS, {
@@ -134,6 +168,7 @@ Deno.serve(async (req: Request) => {
         source_type: "rss" as const,
         latitude: geo?.lat ?? null,
         longitude: geo?.lng ?? null,
+        fire_id: geo ? nearestFireId(fireLocs, geo.lat, geo.lng, 50) : null,
         content_url: link || null,
         generated_at: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString(),
       }
