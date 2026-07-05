@@ -157,6 +157,54 @@
   flex-wrap: wrap;
 }
 
+.list-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  border-radius: 9px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elev);
+  color: var(--text-dim);
+  transition: border-color 0.15s ease;
+}
+
+.list-search:focus-within {
+  border-color: var(--primary-border);
+  color: var(--primary);
+}
+
+.list-search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+}
+
+.list-search-input::placeholder {
+  color: var(--text-dim);
+}
+
+.list-search-clear {
+  display: grid;
+  place-items: center;
+  padding: 2px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  border-radius: 5px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.list-search-clear:hover {
+  color: var(--text);
+  background: var(--border);
+}
+
 .filter-chip {
   padding: 5px 11px;
   border-radius: 999px;

@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react'
 import { SEVERITY_META, STATUS_META, aqiCategory, formatRelative } from '../lib/fireUtils'
 import { acresLabel } from '../lib/units'
 import { useUnits } from '../context/UnitsContext'
@@ -18,13 +19,51 @@ export default function FireList({
   onFilter,
 }) {
   const { units } = useUnits()
+  const [query, setQuery] = useState('')
+
+  const q = query.trim().toLowerCase()
+  const visibleFires = useMemo(() => {
+    if (!q) return fires
+    return fires.filter(
+      (f) =>
+        f.name?.toLowerCase().includes(q) ||
+        f.location_description?.toLowerCase().includes(q),
+    )
+  }, [fires, q])
 
   return (
     <div className="fire-list">
       <div className="list-header">
         <h3>Active Incidents</h3>
-        <span className="list-count">{fires.length} of {totalCount}</span>
+        <span className="list-count">{visibleFires.length} of {totalCount}</span>
       </div>
+
+      <div className="list-search">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" />
+          <path d="m21 21-4.3-4.3" />
+        </svg>
+        <input
+          type="text"
+          className="list-search-input"
+          placeholder="Search fires by name…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          aria-label="Search incidents by name"
+        />
+        {query && (
+          <button
+            className="list-search-clear"
+            onClick={() => setQuery('')}
+            aria-label="Clear search"
+          >
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        )}
+      </div>
+
       <div className="list-filters">
         {FILTERS.map((f) => (
           <button
@@ -38,7 +77,7 @@ export default function FireList({
       </div>
 
       <ul className="list-items">
-        {fires.map((fire) => {
+        {visibleFires.map((fire) => {
           const sev = SEVERITY_META[fire.severity] || SEVERITY_META.moderate
           const status = STATUS_META[fire.status] || STATUS_META.active
           const aqi = aqiCategory(fire.air_quality)
@@ -73,11 +112,13 @@ export default function FireList({
             </li>
           )
         })}
-        {fires.length === 0 && (
+        {visibleFires.length === 0 && (
           <li className="list-empty">
-            {totalCount > 0
-              ? 'No incidents in the current map view. Zoom out or pan to see more.'
-              : 'No fires match this filter.'}
+            {q
+              ? `No incidents match “${query.trim()}”.`
+              : totalCount > 0
+                ? 'No incidents in the current map view. Zoom out or pan to see more.'
+                : 'No fires match this filter.'}
           </li>
         )}
       </ul>
