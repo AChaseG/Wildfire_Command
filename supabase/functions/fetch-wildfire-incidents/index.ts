@@ -127,7 +127,9 @@ Deno.serve(async (req: Request) => {
           location_description: locParts.join(", ") || null,
           summary: summaryParts.join(" "),
           source: "NIFC WFIGS",
-          source_url: "https://data-nifc.opendata.arcgis.com/",
+          source_url:
+            `${WFIGS_URL}?where=${encodeURIComponent(`IrwinID = '${externalId}'`)}` +
+            `&outFields=*&outSR=4326&f=json`,
           updated_at: new Date().toISOString(),
         };
       })
