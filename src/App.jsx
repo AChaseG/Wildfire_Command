@@ -194,6 +194,9 @@ export default function App() {
         fetch(`${base}/functions/v1/fetch-wildfire-incidents`, { method: 'POST', headers }),
         fetch(`${base}/functions/v1/fetch-purpleair`, { method: 'POST', headers }),
       ])
+      // After incidents are ingested, clear the active status of any fire whose
+      // data now shows it fully contained or out.
+      await fetch(`${base}/functions/v1/resolve-fire-status`, { method: 'POST', headers }).catch(() => {})
       // Realtime pushes new rows, but refresh guards against missed events.
       refreshAlerts()
       refreshFires()
