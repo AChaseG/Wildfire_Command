@@ -4,7 +4,8 @@ import { CATEGORY_META } from '../lib/fireUtils'
 
 // Watches for new incident updates. When an update lands on an incident the
 // user has flagged as "monitored" and external notifications are enabled,
-// relays the update to the configured Slack webhook via the edge function.
+// relays the update to Slack via the edge function, which posts to the
+// configured channel with a server-held bot token.
 export function useIncidentMonitor(fires, settings) {
   const firesRef = useRef(fires)
   const settingsRef = useRef(settings)
@@ -24,7 +25,7 @@ export function useIncidentMonitor(fires, settings) {
         (payload) => {
           const update = payload.new
           const cfg = settingsRef.current
-          if (!cfg?.enabled || !cfg?.slack_webhook_url) return
+          if (!cfg?.enabled || !cfg?.slack_channel_id) return
           const fire = firesRef.current.find((f) => f.id === update.fire_id)
           if (!fire || !fire.monitored) return
 
@@ -44,7 +45,7 @@ export function useIncidentMonitor(fires, settings) {
               Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ webhookUrl: cfg.slack_webhook_url, text }),
+            body: JSON.stringify({ text }),
           }).catch(() => {
             // Best effort; a failed relay should never break the UI.
           })

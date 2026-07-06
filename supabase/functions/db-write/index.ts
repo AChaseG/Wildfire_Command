@@ -36,7 +36,7 @@ const RULES: Record<string, TableRule> = {
     delete: { match: true },
   },
   notification_settings: {
-    update: { cols: ["slack_webhook_url", "enabled", "updated_at"], match: true },
+    update: { cols: ["slack_channel_id", "enabled", "updated_at"], match: true },
   },
   wildfires: {
     update: { cols: ["monitored"], match: true },

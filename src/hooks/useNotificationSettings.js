@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { mutate } from '../lib/dbWrite'
 
-const DEFAULTS = { id: 'default', slack_webhook_url: '', enabled: false }
+const DEFAULTS = { id: 'default', slack_channel_id: '', enabled: false }
 
 export function useNotificationSettings() {
   const [settings, setSettings] = useState(DEFAULTS)
@@ -19,7 +19,7 @@ export function useNotificationSettings() {
       .then(({ data, error }) => {
         if (cancelled) return
         if (error) setError(error.message)
-        else if (data) setSettings({ ...DEFAULTS, ...data, slack_webhook_url: data.slack_webhook_url || '' })
+        else if (data) setSettings({ ...DEFAULTS, ...data, slack_channel_id: data.slack_channel_id || '' })
         setLoading(false)
       })
     return () => {
@@ -37,7 +37,7 @@ export function useNotificationSettings() {
       setError(error.message)
       return false
     }
-    if (data) setSettings({ ...DEFAULTS, ...data, slack_webhook_url: data.slack_webhook_url || '' })
+    if (data) setSettings({ ...DEFAULTS, ...data, slack_channel_id: data.slack_channel_id || '' })
     return true
   }, [])
 

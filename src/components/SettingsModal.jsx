@@ -45,14 +45,14 @@ export default function SettingsModal({
   notifSettings,
   onSaveNotif,
 }) {
-  const [webhook, setWebhook] = useState('')
+  const [channelId, setChannelId] = useState('')
   const [enabled, setEnabled] = useState(false)
   const [savingNotif, setSavingNotif] = useState(false)
   const [notifStatus, setNotifStatus] = useState(null)
 
   useEffect(() => {
     if (!open) return
-    setWebhook(notifSettings.slack_webhook_url || '')
+    setChannelId(notifSettings.slack_channel_id || '')
     setEnabled(Boolean(notifSettings.enabled))
     setNotifStatus(null)
   }, [open, notifSettings])
@@ -62,13 +62,13 @@ export default function SettingsModal({
   const saveNotif = async (e) => {
     e.preventDefault()
     setNotifStatus(null)
-    const trimmed = webhook.trim()
-    if (enabled && !/^https:\/\/hooks\.slack\.com\//.test(trimmed)) {
-      setNotifStatus({ ok: false, msg: 'Enter a valid Slack webhook URL (https://hooks.slack.com/…) to enable notifications.' })
+    const trimmed = channelId.trim().toUpperCase()
+    if (enabled && !/^[CGD][A-Z0-9]{7,}$/.test(trimmed)) {
+      setNotifStatus({ ok: false, msg: 'Enter a valid Slack channel ID (e.g. C0BFY7Q8PC0) to enable notifications.' })
       return
     }
     setSavingNotif(true)
-    const ok = await onSaveNotif({ slack_webhook_url: trimmed || null, enabled })
+    const ok = await onSaveNotif({ slack_channel_id: trimmed || null, enabled })
     setSavingNotif(false)
     setNotifStatus(ok ? { ok: true, msg: 'Notification settings saved.' } : { ok: false, msg: 'Could not save settings.' })
   }
@@ -130,7 +130,7 @@ export default function SettingsModal({
             </select>
           </Section>
 
-          <Section title="External notifications" desc="Relay updates for monitored incidents to a Slack channel via an incoming webhook.">
+          <Section title="External notifications" desc="Relay updates for monitored incidents to a Slack channel via the Slack app.">
             <form onSubmit={saveNotif} className="notif-form">
               <button
                 type="button"
@@ -143,17 +143,18 @@ export default function SettingsModal({
                 <span className="switch-label">{enabled ? 'Sending enabled' : 'Sending disabled'}</span>
               </button>
               <label className="form-label">
-                Slack incoming webhook URL
+                Slack channel ID
                 <input
-                  type="url"
+                  type="text"
                   className="form-input"
-                  value={webhook}
-                  onChange={(e) => setWebhook(e.target.value)}
-                  placeholder="https://hooks.slack.com/services/…"
+                  value={channelId}
+                  onChange={(e) => setChannelId(e.target.value)}
+                  placeholder="C0BFY7Q8PC0"
                 />
               </label>
               <p className="share-hint">
-                When enabled, every new update posted to an incident you are monitoring is sent to this Slack channel.
+                Copy the channel ID from the Slack channel's URL, and invite the notification bot to that channel.
+                When enabled, every new update on an incident you are monitoring is posted there.
               </p>
               {notifStatus && <div className={`share-status ${notifStatus.ok ? 'ok' : 'err'}`}>{notifStatus.msg}</div>}
               <div className="form-actions">
