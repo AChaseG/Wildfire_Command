@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { DOMParser, type Element } from "jsr:@b-fuze/deno-dom@0.1.48";
+import { assertPublicUrl, safeFetch } from "../_shared/ssrf.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -153,8 +154,7 @@ async function scrape(url: string, baseUrl: string) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
-    const res = await fetch(url, {
-      redirect: "follow",
+    const res = await safeFetch(url, {
       signal: controller.signal,
       headers: { "User-Agent": "WildfireCommand-Scraper/1.0", "Accept": "text/html,*/*" },
     });
@@ -282,18 +282,12 @@ Deno.serve(async (req: Request) => {
 
 // deno-lint-ignore no-explicit-any
 async function scrapeAndStore(db: any, id: string, url: string) {
-  let origin: string;
   let result: Awaited<ReturnType<typeof scrape>>;
   try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      result = { status: "error", error: "URL must use http or https." };
-    } else {
-      origin = parsed.origin;
-      result = await scrape(url, origin);
-    }
-  } catch {
-    result = { status: "error", error: "Malformed URL." };
+    const parsed = await assertPublicUrl(url);
+    result = await scrape(url, parsed.origin);
+  } catch (err) {
+    result = { status: "error", error: err instanceof Error ? err.message : "Malformed URL." };
   }
 
   const row = {

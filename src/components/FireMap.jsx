@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css'
 import { SEVERITY_META, aqiCategory, formatDateTime } from '../lib/fireUtils'
 import { MAP_LAYERS, LABELS_OVERLAY_URL } from '../lib/mapLayers'
 import { parseKml } from '../lib/kmlUtils'
+import { escapeHtml } from '../lib/escapeHtml'
 import MeasureTool, { MEASURE_MODES } from './MeasureTool'
 import LocationSearch from './LocationSearch'
 
@@ -248,7 +249,7 @@ function KmlOverlay({ sources }) {
           }
           if (layer) {
             layer.bindTooltip(
-              `<div class="map-tooltip"><div class="map-tooltip-name">${feature.name}</div><div class="map-tooltip-row" style="opacity:0.7">${source.name}</div></div>`,
+              `<div class="map-tooltip"><div class="map-tooltip-name">${escapeHtml(feature.name)}</div><div class="map-tooltip-row" style="opacity:0.7">${escapeHtml(source.name)}</div></div>`,
               { direction: 'top', opacity: 1 },
             )
             layer.addTo(group)

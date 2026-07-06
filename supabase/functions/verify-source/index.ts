@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { assertPublicUrl, safeFetch } from "../_shared/ssrf.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,22 +22,17 @@ async function probe(url: string): Promise<{
   status: "ok" | "unreachable" | "error";
   detail: string;
 }> {
-  let parsed: URL;
   try {
-    parsed = new URL(url);
-  } catch {
-    return { status: "error", detail: "Malformed URL." };
-  }
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    return { status: "error", detail: "URL must use http or https." };
+    await assertPublicUrl(url);
+  } catch (err) {
+    return { status: "error", detail: err instanceof Error ? err.message : "Blocked URL." };
   }
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
-    const res = await fetch(url, {
+    const res = await safeFetch(url, {
       method: "GET",
-      redirect: "follow",
       signal: controller.signal,
       headers: { "User-Agent": "WildfireCommand-SourceCheck/1.0", "Accept": "*/*" },
     });

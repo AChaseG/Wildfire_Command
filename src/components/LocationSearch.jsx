@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMap } from 'react-leaflet'
 import L from 'leaflet'
+import { escapeHtml } from '../lib/escapeHtml'
 
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search'
 
@@ -43,7 +44,7 @@ export default function LocationSearch() {
       iconAnchor: [12, 12],
     })
     const m = L.marker([lat, lng], { icon }).addTo(map)
-    if (label) m.bindPopup(label)
+    if (label) m.bindPopup(escapeHtml(label))
     markerRef.current = m
   }
 

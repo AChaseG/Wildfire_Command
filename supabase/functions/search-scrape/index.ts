@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { DOMParser, type Element } from "jsr:@b-fuze/deno-dom@0.1.48";
+import { safeFetch } from "../_shared/ssrf.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,8 +40,7 @@ async function scrapePage(url: string, incidents: Map<string, { name: string; ac
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
-    const res = await fetch(url, {
-      redirect: "follow",
+    const res = await safeFetch(url, {
       signal: controller.signal,
       headers: { "User-Agent": "WildfireCommand-Scraper/1.0", "Accept": "text/html,*/*" },
     });
