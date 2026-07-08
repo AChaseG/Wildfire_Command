@@ -1,10 +1,15 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { SEVERITY_META, type Fire, type Hotspot } from '../domain'
+import { SEVERITY_META, haversineKm, formatDistance, type Fire, type Hotspot, type UnitSystem } from '../domain'
+import type { KeyLocation } from '../hooks/useKeyLocations'
+
+export type MapMode = 'select' | 'measure' | 'place'
 
 const SOURCE_ID = 'fires'
 const HOTSPOT_ID = 'hotspots'
+const PLACES_ID = 'places'
+const MEASURE_ID = 'measure'
 const US_CENTER: [number, number] = [-108, 41]
 
 type GeoData = Parameters<maplibregl.GeoJSONSource['setData']>[0]
@@ -20,37 +25,39 @@ function firesToGeoJSON(fires: Fire[]): GeoData {
   return {
     type: 'FeatureCollection',
     features: fires.map((f) => ({
-      type: 'Feature',
-      id: f.id,
+      type: 'Feature', id: f.id,
       geometry: { type: 'Point', coordinates: [f.location.lng, f.location.lat] },
       properties: { id: f.id, name: f.name, color: SEVERITY_META[f.severity].color, severity: f.severity },
     })),
   } as unknown as GeoData
 }
 
-function hotspotsToGeoJSON(hotspots: Hotspot[]): GeoData {
-  return {
-    type: 'FeatureCollection',
-    features: hotspots.map((h) => ({
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: [h.lng, h.lat] },
-      properties: { weight: h.frp ?? 1 },
-    })),
-  } as unknown as GeoData
+function pointsToGeoJSON(points: [number, number][]): GeoData {
+  return { type: 'FeatureCollection', features: points.map((c) => ({ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: c } })) } as unknown as GeoData
+}
+
+function measureToGeoJSON(points: [number, number][]): GeoData {
+  const features: unknown[] = points.map((c) => ({ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: c } }))
+  if (points.length >= 2) features.push({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: points } })
+  return { type: 'FeatureCollection', features } as unknown as GeoData
 }
 
 function graticule(): GeoData {
   const features = []
-  for (let lng = -130; lng <= -60; lng += 10) {
-    features.push({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[lng, 15], [lng, 60]] } })
-  }
-  for (let lat = 20; lat <= 55; lat += 5) {
-    features.push({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[-130, lat], [-60, lat]] } })
-  }
+  for (let lng = -130; lng <= -60; lng += 10) features.push({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[lng, 15], [lng, 60]] } })
+  for (let lat = 20; lat <= 55; lat += 5) features.push({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[-130, lat], [-60, lat]] } })
   return { type: 'FeatureCollection', features } as unknown as GeoData
 }
 
 const RADIUS: maplibregl.ExpressionSpecification = ['match', ['get', 'severity'], 'extreme', 11, 'high', 8, 'moderate', 6, 4]
+
+function totalKm(points: [number, number][]): number {
+  let km = 0
+  for (let i = 1; i < points.length; i++) {
+    km += haversineKm({ lat: points[i - 1]![1], lng: points[i - 1]![0] }, { lat: points[i]![1], lng: points[i]![0] })
+  }
+  return km
+}
 
 interface Props {
   fires: Fire[]
@@ -58,32 +65,30 @@ interface Props {
   showHotspots: boolean
   selectedId: string | null
   onSelect: (id: string) => void
+  mode: MapMode
+  units: UnitSystem
+  keyLocations: KeyLocation[]
+  onPlaceLocation: (lat: number, lng: number) => void
 }
 
-export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect }: Props) {
+export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect, mode, units, keyLocations, onPlaceLocation }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const loadedRef = useRef(false)
-  const firesRef = useRef(fires)
-  firesRef.current = fires
-  const hotspotsRef = useRef(hotspots)
-  hotspotsRef.current = hotspots
-  const showHotspotsRef = useRef(showHotspots)
-  showHotspotsRef.current = showHotspots
-  const selectedIdRef = useRef(selectedId)
-  selectedIdRef.current = selectedId
-  const onSelectRef = useRef(onSelect)
-  onSelectRef.current = onSelect
+  const [measurePoints, setMeasurePoints] = useState<[number, number][]>([])
+
+  const firesRef = useRef(fires); firesRef.current = fires
+  const hotspotsRef = useRef(hotspots); hotspotsRef.current = hotspots
+  const showHotspotsRef = useRef(showHotspots); showHotspotsRef.current = showHotspots
+  const keyLocationsRef = useRef(keyLocations); keyLocationsRef.current = keyLocations
+  const selectedIdRef = useRef(selectedId); selectedIdRef.current = selectedId
+  const modeRef = useRef(mode); modeRef.current = mode
+  const onSelectRef = useRef(onSelect); onSelectRef.current = onSelect
+  const onPlaceRef = useRef(onPlaceLocation); onPlaceRef.current = onPlaceLocation
 
   useEffect(() => {
     if (mapRef.current || !containerRef.current) return
-    const map = new maplibregl.Map({
-      container: containerRef.current,
-      style: STYLE,
-      center: US_CENTER,
-      zoom: 3.7,
-      attributionControl: { compact: true },
-    })
+    const map = new maplibregl.Map({ container: containerRef.current, style: STYLE, center: US_CENTER, zoom: 3.7, attributionControl: { compact: true } })
     mapRef.current = map
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
 
@@ -91,7 +96,7 @@ export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect }:
       map.addSource('graticule', { type: 'geojson', data: graticule() })
       map.addLayer({ id: 'graticule', type: 'line', source: 'graticule', paint: { 'line-color': '#1b2431', 'line-width': 1 } })
 
-      map.addSource(HOTSPOT_ID, { type: 'geojson', data: hotspotsToGeoJSON(hotspotsRef.current) })
+      map.addSource(HOTSPOT_ID, { type: 'geojson', data: pointsToGeoJSON([]) })
       map.addLayer({
         id: 'hotspot-heat', type: 'heatmap', source: HOTSPOT_ID,
         layout: { visibility: showHotspotsRef.current ? 'visible' : 'none' },
@@ -100,60 +105,50 @@ export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect }:
           'heatmap-intensity': 0.8,
           'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 3, 10, 8, 28],
           'heatmap-opacity': 0.75,
-          'heatmap-color': [
-            'interpolate', ['linear'], ['heatmap-density'],
-            0, 'rgba(0,0,0,0)',
-            0.3, '#7e1a12',
-            0.6, '#f0a020',
-            1, '#ffe08a',
-          ],
+          'heatmap-color': ['interpolate', ['linear'], ['heatmap-density'], 0, 'rgba(0,0,0,0)', 0.3, '#7e1a12', 0.6, '#f0a020', 1, '#ffe08a'],
         },
       })
-      // A translucent point layer accompanies the heatmap: individual detections
-      // stay visible when zoomed in (and it renders where software WebGL skips
-      // the heatmap pass).
       map.addLayer({
         id: 'hotspot-point', type: 'circle', source: HOTSPOT_ID,
         layout: { visibility: showHotspotsRef.current ? 'visible' : 'none' },
-        paint: {
-          'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 2.5, 8, 5],
-          'circle-color': '#ff8c1a',
-          'circle-opacity': 0.65,
-          'circle-blur': 0.3,
-        },
+        paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 2.5, 8, 5], 'circle-color': '#ff8c1a', 'circle-opacity': 0.65, 'circle-blur': 0.3 },
       })
 
       map.addSource(SOURCE_ID, { type: 'geojson', data: firesToGeoJSON(firesRef.current), promoteId: 'id' })
-      map.addLayer({
-        id: 'fire-glow', type: 'circle', source: SOURCE_ID,
-        paint: { 'circle-radius': ['*', RADIUS, 2.4], 'circle-color': ['get', 'color'], 'circle-blur': 1, 'circle-opacity': 0.35 },
-      })
+      map.addLayer({ id: 'fire-glow', type: 'circle', source: SOURCE_ID, paint: { 'circle-radius': ['*', RADIUS, 2.4], 'circle-color': ['get', 'color'], 'circle-blur': 1, 'circle-opacity': 0.35 } })
       map.addLayer({
         id: 'fire-point', type: 'circle', source: SOURCE_ID,
-        paint: {
-          'circle-radius': RADIUS,
-          'circle-color': ['get', 'color'],
-          'circle-stroke-color': '#ffffff',
-          'circle-stroke-width': ['case', ['boolean', ['feature-state', 'selected'], false], 3, 1],
-        },
+        paint: { 'circle-radius': RADIUS, 'circle-color': ['get', 'color'], 'circle-stroke-color': '#ffffff', 'circle-stroke-width': ['case', ['boolean', ['feature-state', 'selected'], false], 3, 1] },
       })
 
+      map.addSource(PLACES_ID, { type: 'geojson', data: pointsToGeoJSON([]) })
+      map.addLayer({ id: 'place-point', type: 'circle', source: PLACES_ID, paint: { 'circle-radius': 6, 'circle-color': '#5ad1c9', 'circle-stroke-color': '#0b0e14', 'circle-stroke-width': 2 } })
+
+      map.addSource(MEASURE_ID, { type: 'geojson', data: measureToGeoJSON([]) })
+      map.addLayer({ id: 'measure-line', type: 'line', source: MEASURE_ID, filter: ['==', '$type', 'LineString'], paint: { 'line-color': '#7aa2ff', 'line-width': 2, 'line-dasharray': [2, 1.5] } })
+      map.addLayer({ id: 'measure-point', type: 'circle', source: MEASURE_ID, filter: ['==', '$type', 'Point'], paint: { 'circle-radius': 4, 'circle-color': '#7aa2ff', 'circle-stroke-color': '#0b0e14', 'circle-stroke-width': 1.5 } })
+
       map.on('click', 'fire-point', (e) => {
+        if (modeRef.current !== 'select') return
         const id = e.features?.[0]?.properties?.id
         if (typeof id === 'string') onSelectRef.current(id)
       })
-      map.on('mouseenter', 'fire-point', () => { map.getCanvas().style.cursor = 'pointer' })
-      map.on('mouseleave', 'fire-point', () => { map.getCanvas().style.cursor = '' })
+      map.on('mouseenter', 'fire-point', () => { if (modeRef.current === 'select') map.getCanvas().style.cursor = 'pointer' })
+      map.on('mouseleave', 'fire-point', () => { if (modeRef.current === 'select') map.getCanvas().style.cursor = '' })
+
+      map.on('click', (e) => {
+        const m = modeRef.current
+        if (m === 'place') { onPlaceRef.current(e.lngLat.lat, e.lngLat.lng); return }
+        if (m === 'measure') setMeasurePoints((pts) => [...pts, [e.lngLat.lng, e.lngLat.lat]])
+      })
 
       loadedRef.current = true
+      ;(map.getSource(HOTSPOT_ID) as maplibregl.GeoJSONSource).setData(pointsToGeoJSON(hotspotsRef.current.map((h) => [h.lng, h.lat])))
+      ;(map.getSource(PLACES_ID) as maplibregl.GeoJSONSource).setData(pointsToGeoJSON(keyLocationsRef.current.map((l) => [l.lng, l.lat])))
       syncSelection(map, firesRef.current, selectedIdRef.current)
     })
 
-    return () => {
-      map.remove()
-      mapRef.current = null
-      loadedRef.current = false
-    }
+    return () => { map.remove(); mapRef.current = null; loadedRef.current = false }
   }, [])
 
   useEffect(() => {
@@ -165,17 +160,34 @@ export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect }:
   useEffect(() => {
     const map = mapRef.current
     if (!map || !loadedRef.current) return
-    ;(map.getSource(HOTSPOT_ID) as maplibregl.GeoJSONSource | undefined)?.setData(hotspotsToGeoJSON(hotspots))
+    ;(map.getSource(HOTSPOT_ID) as maplibregl.GeoJSONSource | undefined)?.setData(pointsToGeoJSON(hotspots.map((h) => [h.lng, h.lat])))
   }, [hotspots])
 
   useEffect(() => {
     const map = mapRef.current
     if (!map || !loadedRef.current) return
     const visibility = showHotspots ? 'visible' : 'none'
-    for (const id of ['hotspot-heat', 'hotspot-point']) {
-      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', visibility)
-    }
+    for (const id of ['hotspot-heat', 'hotspot-point']) if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', visibility)
   }, [showHotspots])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !loadedRef.current) return
+    ;(map.getSource(PLACES_ID) as maplibregl.GeoJSONSource | undefined)?.setData(pointsToGeoJSON(keyLocations.map((l) => [l.lng, l.lat])))
+  }, [keyLocations])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !loadedRef.current) return
+    ;(map.getSource(MEASURE_ID) as maplibregl.GeoJSONSource | undefined)?.setData(measureToGeoJSON(measurePoints))
+  }, [measurePoints])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !loadedRef.current) return
+    if (mode !== 'measure' && measurePoints.length > 0) setMeasurePoints([])
+    map.getCanvas().style.cursor = mode === 'select' ? '' : 'crosshair'
+  }, [mode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const map = mapRef.current
@@ -183,15 +195,20 @@ export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect }:
     syncSelection(map, firesRef.current, selectedId)
   }, [selectedId])
 
-  return <div className="map" ref={containerRef} />
+  return (
+    <>
+      <div className="map" ref={containerRef} />
+      {mode === 'measure' && (
+        <div className="measure-readout">
+          {measurePoints.length < 2 ? 'Click points on the map to measure' : `${formatDistance(totalKm(measurePoints), units)} · ${measurePoints.length} points`}
+        </div>
+      )}
+    </>
+  )
 }
 
 function syncSelection(map: maplibregl.Map, fires: Fire[], selectedId: string | null) {
-  for (const f of fires) {
-    map.setFeatureState({ source: SOURCE_ID, id: f.id }, { selected: f.id === selectedId })
-  }
+  for (const f of fires) map.setFeatureState({ source: SOURCE_ID, id: f.id }, { selected: f.id === selectedId })
   const selected = fires.find((f) => f.id === selectedId)
-  if (selected) {
-    map.easeTo({ center: [selected.location.lng, selected.location.lat], zoom: Math.max(map.getZoom(), 6), duration: 700 })
-  }
+  if (selected) map.easeTo({ center: [selected.location.lng, selected.location.lat], zoom: Math.max(map.getZoom(), 6), duration: 700 })
 }

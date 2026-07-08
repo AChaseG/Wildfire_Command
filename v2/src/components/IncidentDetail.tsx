@@ -6,6 +6,7 @@ import {
   type Fire,
 } from '../domain'
 import { useFireUpdates } from '../data/hooks'
+import { useUnits } from '../lib/units'
 import { StatusBadge } from './badges'
 
 function durationLabel(fire: Fire): string {
@@ -30,6 +31,7 @@ interface Props {
 }
 
 export function IncidentDetail({ fire, onClose }: Props) {
+  const { units } = useUnits()
   const { data: updates, isLoading } = useFireUpdates(fire.id)
   const resolution = fire.status === 'active' ? resolveFireStatus(fire) : null
 
@@ -55,10 +57,10 @@ export function IncidentDetail({ fire, onClose }: Props) {
       )}
 
       <dl className="detail-stats">
-        <Stat label="Size" value={formatArea(fire.acres, 'imperial')} />
+        <Stat label="Size" value={formatArea(fire.acres, units)} />
         <Stat label="Severity" value={fire.severity} />
         <Stat label="Cause" value={fire.cause ?? 'Unknown'} />
-        <Stat label="Wind" value={formatWind(fire.weather.windSpeedMph, fire.weather.windDirectionDeg, 'imperial')} />
+        <Stat label="Wind" value={formatWind(fire.weather.windSpeedMph, fire.weather.windDirectionDeg, units)} />
         <Stat label="Air quality" value={fire.weather.aqi == null ? '—' : String(fire.weather.aqi)} />
         <Stat label="Duration" value={durationLabel(fire)} />
       </dl>

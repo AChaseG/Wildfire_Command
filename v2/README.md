@@ -26,7 +26,7 @@ It lives in `v2/` alongside the original app so the two can be compared.
 | 2 | Ingestion orchestrator + WFIGS connector on a pg_cron schedule | ✅ |
 | 3 | Core UI: MapLibre map, incident list, incident detail | ✅ |
 | 4 | FIRMS hotspots + wind/AQI enrichment + realtime + alerts feed | ✅ |
-| 5 | Polish: theming, key locations, measure tool | planned |
+| 5 | Polish: theming, units, key locations, measure tool | ✅ |
 
 ## Develop
 
@@ -52,6 +52,11 @@ on fixtures ("demo data") so it is fully explorable offline.
 The map defaults to a self-contained inline style; set `VITE_MAP_STYLE` to a
 keyless vector style (e.g. OpenFreeMap or MapTiler) for a full basemap in
 production.
+
+Polish (slice 5): light/dark theme and imperial/metric units (context-based,
+persisted to localStorage, defaulting to the OS preference); locally-saved key
+locations dropped by clicking the map in "place" mode; and a measure tool that
+sums great-circle distance along clicked points using the domain `haversineKm`.
 
 ## Ingestion
 

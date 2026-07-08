@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { formatArea, type Fire } from '../domain'
+import { useUnits } from '../lib/units'
 import { SeverityDot } from './badges'
 
 type StatusFilter = 'all' | 'active' | 'contained' | 'out'
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export function IncidentList({ fires, selectedId, onSelect, loading }: Props) {
+  const { units } = useUnits()
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<StatusFilter>('all')
 
@@ -75,7 +77,7 @@ export function IncidentList({ fires, selectedId, onSelect, loading }: Props) {
               <span className="row-sub">{fire.location.description ?? '—'}</span>
             </span>
             <span className="row-meta">
-              <span className="row-acres">{formatArea(fire.acres, 'imperial')}</span>
+              <span className="row-acres">{formatArea(fire.acres, units)}</span>
               <span className="row-cont">{fire.containmentPct}%</span>
             </span>
           </button>
