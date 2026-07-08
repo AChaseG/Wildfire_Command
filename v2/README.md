@@ -24,7 +24,7 @@ It lives in `v2/` alongside the original app so the two can be compared.
 | ----- | ----- | ------ |
 | 1 | Foundation: TS scaffold, schema, domain layer (tested), CI | ✅ |
 | 2 | Ingestion orchestrator + WFIGS connector on a pg_cron schedule | ✅ |
-| 3 | Core UI: MapLibre map, incident list, incident detail | planned |
+| 3 | Core UI: MapLibre map, incident list, incident detail | ✅ |
 | 4 | Remaining connectors (FIRMS, PurpleAir, wind) + alerts/updates | planned |
 | 5 | Polish: theming, key locations, measure tool | planned |
 
@@ -39,6 +39,19 @@ npm test           # run the domain unit tests
 npm run typecheck  # tsc --noEmit
 npm run build      # typecheck + production build
 ```
+
+## UI
+
+A three-pane console (`src/App.tsx`): an incident list with search + status
+filters, a **MapLibre GL** map (`src/map/FireMap.tsx`) rendering fires as
+severity-colored WebGL circle layers with a selected-feature highlight, and an
+incident detail panel with the per-incident updates feed. Data is fetched with
+TanStack Query (`src/data/`); with no Supabase project configured the app runs
+on fixtures ("demo data") so it is fully explorable offline.
+
+The map defaults to a self-contained inline style; set `VITE_MAP_STYLE` to a
+keyless vector style (e.g. OpenFreeMap or MapTiler) for a full basemap in
+production.
 
 ## Ingestion
 
