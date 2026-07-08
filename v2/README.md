@@ -22,8 +22,8 @@ It lives in `v2/` alongside the original app so the two can be compared.
 
 | Slice | Scope | Status |
 | ----- | ----- | ------ |
-| 1 | Foundation: TS scaffold, schema, domain layer (tested), CI | ✅ this branch |
-| 2 | Ingestion orchestrator + WFIGS connector on a pg_cron schedule | planned |
+| 1 | Foundation: TS scaffold, schema, domain layer (tested), CI | ✅ |
+| 2 | Ingestion orchestrator + WFIGS connector on a pg_cron schedule | ✅ |
 | 3 | Core UI: MapLibre map, incident list, incident detail | planned |
 | 4 | Remaining connectors (FIRMS, PurpleAir, wind) + alerts/updates | planned |
 | 5 | Polish: theming, key locations, measure tool | planned |
@@ -38,6 +38,26 @@ npm run dev        # start the app
 npm test           # run the domain unit tests
 npm run typecheck  # tsc --noEmit
 npm run build      # typecheck + production build
+```
+
+## Ingestion
+
+A single `ingest` edge function (`supabase/functions/ingest/`) runs a registry
+of typed **connectors**. Each connector targets a fixed, trusted source (no
+caller-supplied URLs, so no SSRF surface) and returns rows ready to upsert; the
+orchestrator persists them with the service role, logs every change to
+`fire_updates`, and records each run in `ingest_runs`. Adding a source is a new
+module in `_shared/connectors/` plus one line in the orchestrator's registry.
+
+Connector parsing is kept **pure** (e.g. `parseWfigs`) so it is unit-tested with
+fixtures and no network. A parity test asserts the connector's Deno-side
+`severityFromAcres` stays in step with the browser domain's copy.
+
+Deploy the pipeline and schedule it (every 10 min) with one command:
+
+```bash
+cd v2
+PROJECT_REF=… ANON_KEY=… SUPABASE_DB_URL=… ./scripts/deploy-ingest.sh
 ```
 
 ## Database
