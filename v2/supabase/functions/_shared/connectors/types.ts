@@ -30,3 +30,15 @@ export interface Connector {
   readonly name: string
   fetch(): Promise<FireUpsert[]>
 }
+
+// Satellite thermal detections upserted into the `hotspots` table.
+export interface HotspotUpsert {
+  source: string
+  latitude: number
+  longitude: number
+  brightness_k: number | null
+  confidence: string | null
+  frp: number | null
+  detected_at: string
+  satellite: string | null
+}

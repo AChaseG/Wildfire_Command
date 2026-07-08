@@ -36,6 +36,19 @@ export interface FireUpdateRow {
   created_at: string
 }
 
+export interface HotspotRow {
+  id: string
+  source: string
+  latitude: number
+  longitude: number
+  brightness_k: number | null
+  confidence: string | null
+  frp: number | null
+  detected_at: string
+  satellite: string | null
+  created_at: string
+}
+
 export interface IngestRunRow {
   id: string
   connector: string
@@ -54,6 +67,7 @@ export interface Database {
     Tables: {
       fires: Table<FireRow>
       fire_updates: Table<FireUpdateRow>
+      hotspots: Table<HotspotRow>
       ingest_runs: Table<IngestRunRow>
     }
     Views: Record<string, never>

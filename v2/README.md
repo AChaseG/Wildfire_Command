@@ -25,7 +25,7 @@ It lives in `v2/` alongside the original app so the two can be compared.
 | 1 | Foundation: TS scaffold, schema, domain layer (tested), CI | ✅ |
 | 2 | Ingestion orchestrator + WFIGS connector on a pg_cron schedule | ✅ |
 | 3 | Core UI: MapLibre map, incident list, incident detail | ✅ |
-| 4 | Remaining connectors (FIRMS, PurpleAir, wind) + alerts/updates | planned |
+| 4 | FIRMS hotspots + wind/AQI enrichment + realtime + alerts feed | ✅ |
 | 5 | Polish: theming, key locations, measure tool | planned |
 
 ## Develop

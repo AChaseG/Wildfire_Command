@@ -36,7 +36,7 @@ export function IncidentList({ fires, selectedId, onSelect, loading }: Props) {
   }, [fires, filter, query])
 
   return (
-    <aside className="list">
+    <div className="list-inner">
       <div className="list-head">
         <input
           className="search"
@@ -81,6 +81,6 @@ export function IncidentList({ fires, selectedId, onSelect, loading }: Props) {
           </button>
         ))}
       </div>
-    </aside>
+    </div>
   )
 }

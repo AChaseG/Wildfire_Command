@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchFires, fetchFireUpdates } from './fires'
+import { fetchFires, fetchFireUpdates, fetchHotspots } from './fires'
 
 // Realtime (slice 4) will push into this same cache; for now a periodic refetch
 // keeps the console current.
@@ -8,6 +8,15 @@ export function useFires() {
     queryKey: ['fires'],
     queryFn: fetchFires,
     refetchInterval: 120_000,
+  })
+}
+
+export function useHotspots(enabled: boolean) {
+  return useQuery({
+    queryKey: ['hotspots'],
+    queryFn: fetchHotspots,
+    enabled,
+    staleTime: 300_000,
   })
 }
 

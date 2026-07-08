@@ -1,5 +1,6 @@
 import type { Fire, FireStatus, FireUpdate, FireUpdateKind, Severity } from './fire'
-import type { FireRow, FireUpdateRow } from '../types/database'
+import type { Hotspot } from './hotspot'
+import type { FireRow, FireUpdateRow, HotspotRow } from '../types/database'
 
 export function fireFromRow(row: FireRow): Fire {
   return {
@@ -27,6 +28,19 @@ export function fireFromRow(row: FireRow): Fire {
     summary: row.summary,
     monitored: row.monitored,
     updatedAt: row.updated_at,
+  }
+}
+
+export function hotspotFromRow(row: HotspotRow): Hotspot {
+  return {
+    id: row.id,
+    lat: row.latitude,
+    lng: row.longitude,
+    brightnessK: row.brightness_k,
+    frp: row.frp,
+    confidence: row.confidence,
+    detectedAt: row.detected_at,
+    satellite: row.satellite,
   }
 }
 
