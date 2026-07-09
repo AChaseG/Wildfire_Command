@@ -50,13 +50,18 @@ fi
 echo "==> Deploying + scheduling the ingest pipeline..."
 ./scripts/deploy-ingest.sh
 
-echo "==> Building the frontend..."
+echo "==> Building the frontend against the live backend..."
 npm ci
+# Bake the live Supabase project into the bundle so the deployed app reads real
+# data instead of demo fixtures. VITE_MAP_STYLE is passed through only if set.
+VITE_SUPABASE_URL="https://$PROJECT_REF.supabase.co" \
+VITE_SUPABASE_ANON_KEY="$ANON_KEY" \
+${VITE_MAP_STYLE:+VITE_MAP_STYLE="$VITE_MAP_STYLE"} \
 npm run build
 
 echo ""
-echo "==> Backend is live. Final step: host the built ./dist with these env vars:"
-echo "      VITE_SUPABASE_URL=https://$PROJECT_REF.supabase.co"
-echo "      VITE_SUPABASE_ANON_KEY=$ANON_KEY"
-echo "    (optionally VITE_MAP_STYLE=<keyless vector style URL> for a basemap)"
-echo "    e.g. 'vercel --prod' or 'netlify deploy --prod --dir=dist'."
+echo "==> Backend is live and ./dist is built against it (no host env vars needed —"
+echo "    the Supabase URL/key are already baked into the static bundle)."
+echo "    Host the ./dist folder on any static host, e.g.:"
+echo "      npx vercel@latest --prod           # or"
+echo "      npx netlify-cli deploy --prod --dir=dist"
