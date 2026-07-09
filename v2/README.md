@@ -46,8 +46,20 @@ A three-pane console (`src/App.tsx`): an incident list with search + status
 filters, a **MapLibre GL** map (`src/map/FireMap.tsx`) rendering fires as
 severity-colored WebGL circle layers with a selected-feature highlight, and an
 incident detail panel with the per-incident updates feed. Data is fetched with
-TanStack Query (`src/data/`); with no Supabase project configured the app runs
-on fixtures ("demo data") so it is fully explorable offline.
+TanStack Query (`src/data/`).
+
+### Data modes
+
+The app runs in one of three modes (`src/data/fires.ts`):
+
+- **live** (default, no backend): the browser fetches NIFC WFIGS directly from
+  the public ArcGIS feature service and reuses the connector's pure `parseWfigs`.
+  Deploys as a pure static site (e.g. GitHub Pages) with live incident data and
+  zero infrastructure. Trade-off: no update history, hotspots, or AQI (those need
+  a backend/keys).
+- **supabase** (`VITE_SUPABASE_URL` set): reads the project's tables — adds the
+  ingested history, FIRMS hotspots, AQI enrichment, and realtime.
+- **demo** (`VITE_DATA_MODE=demo`): bundled fixtures, for offline development.
 
 The map defaults to a self-contained inline style; set `VITE_MAP_STYLE` to a
 keyless vector style (e.g. OpenFreeMap or MapTiler) for a full basemap in

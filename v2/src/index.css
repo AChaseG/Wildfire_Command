@@ -46,6 +46,7 @@ body {
 .brand .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
 .top-meta { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
 .top-meta .demo { color: #f0a020; border: 1px solid #f0a02055; border-radius: 999px; padding: 2px 8px; }
+.top-meta .live { color: #3fb950; border: 1px solid #3fb95055; border-radius: 999px; padding: 2px 8px; }
 .toggle-btn { background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); border-radius: 7px; padding: 4px 9px; font-size: 12px; cursor: pointer; min-width: 32px; }
 .toggle-btn:hover { color: var(--text); }
 

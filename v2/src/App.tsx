@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useFires, useHotspots } from './data/hooks'
 import { useRealtimeSync } from './data/realtime'
-import { isDemo } from './data/fires'
+import { dataMode } from './data/fires'
 import { deriveAlerts } from './domain'
 import { useTheme } from './lib/theme'
 import { useUnits } from './lib/units'
@@ -46,7 +46,8 @@ export default function App() {
         </div>
         <div className="top-meta">
           <span className="count">{fires.length} incidents</span>
-          {isDemo && <span className="demo" title="No Supabase project configured — showing sample data">demo data</span>}
+          {dataMode === 'live' && <span className="live" title="Live data fetched directly from NIFC WFIGS — no backend">live · WFIGS</span>}
+          {dataMode === 'demo' && <span className="demo" title="Bundled sample data (VITE_DATA_MODE=demo)">demo data</span>}
           <button className="toggle-btn" onClick={toggleUnits} type="button" title="Toggle units">{units === 'imperial' ? 'mi · ac' : 'km · ha'}</button>
           <button className="toggle-btn" onClick={toggleTheme} type="button" title="Toggle theme">{theme === 'dark' ? '☾' : '☀'}</button>
         </div>

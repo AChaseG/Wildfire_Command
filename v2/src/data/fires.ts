@@ -3,13 +3,25 @@ import { env } from '../lib/env'
 import { fireFromRow, fireUpdateFromRow, hotspotFromRow, type Fire, type FireUpdate, type Hotspot } from '../domain'
 import { SAMPLE_FIRES, SAMPLE_UPDATES } from './fixtures'
 import { SAMPLE_HOTSPOTS } from './hotspotFixtures'
+import { fetchLiveFires } from './live'
 
-// With no Supabase project configured the app runs on fixtures so the UI is
-// fully explorable offline; with env set it reads the real tables.
-export const isDemo = env.supabaseUrl.length === 0
+export type DataMode = 'supabase' | 'live' | 'demo'
+
+// How the app sources data:
+//  - supabase: read the project's tables (set VITE_SUPABASE_URL). Adds history,
+//    hotspots, AQI, realtime.
+//  - live: no backend — fetch NIFC WFIGS directly in the browser (the default).
+//  - demo: bundled fixtures (VITE_DATA_MODE=demo), for offline development.
+export const dataMode: DataMode =
+  env.supabaseUrl.length > 0
+    ? 'supabase'
+    : import.meta.env.VITE_DATA_MODE === 'demo'
+      ? 'demo'
+      : 'live'
 
 export async function fetchFires(): Promise<Fire[]> {
-  if (isDemo) return SAMPLE_FIRES
+  if (dataMode === 'demo') return SAMPLE_FIRES
+  if (dataMode === 'live') return fetchLiveFires()
   const { data, error } = await getSupabase()
     .from('fires')
     .select('*')
@@ -19,7 +31,8 @@ export async function fetchFires(): Promise<Fire[]> {
 }
 
 export async function fetchHotspots(): Promise<Hotspot[]> {
-  if (isDemo) return SAMPLE_HOTSPOTS
+  if (dataMode === 'demo') return SAMPLE_HOTSPOTS
+  if (dataMode === 'live') return [] // FIRMS needs an API key + a server to hold it
   const { data, error } = await getSupabase()
     .from('hotspots')
     .select('*')
@@ -30,7 +43,8 @@ export async function fetchHotspots(): Promise<Hotspot[]> {
 }
 
 export async function fetchFireUpdates(fireId: string): Promise<FireUpdate[]> {
-  if (isDemo) return SAMPLE_UPDATES[fireId] ?? []
+  if (dataMode === 'demo') return SAMPLE_UPDATES[fireId] ?? []
+  if (dataMode === 'live') return [] // update history requires a backend to diff snapshots over time
   const { data, error } = await getSupabase()
     .from('fire_updates')
     .select('*')

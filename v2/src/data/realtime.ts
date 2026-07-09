@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { getSupabase } from '../lib/supabase'
-import { isDemo } from './fires'
+import { dataMode } from './fires'
 
 // Subscribes to Postgres changes on fires/fire_updates and invalidates the
 // affected queries so the console stays live without polling. No-op in demo
@@ -10,7 +10,7 @@ export function useRealtimeSync() {
   const queryClient = useQueryClient()
 
   useEffect(() => {
-    if (isDemo) return
+    if (dataMode !== 'supabase') return
     const supabase = getSupabase()
     const channel = supabase
       .channel('wildfire-console')
