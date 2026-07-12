@@ -18,7 +18,9 @@ type GeoData = Parameters<maplibregl.GeoJSONSource['setData']>[0]
 // VITE_MAP_STYLE. If the remote style can't load, we fall back to the inline
 // style below so the map always renders something.
 const DEFAULT_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
-const STYLE: string = import.meta.env.VITE_MAP_STYLE ?? DEFAULT_STYLE
+// `||` (not `??`): CI passes an unset VITE_MAP_STYLE var as "", which must also
+// fall back to the default, not become an empty (broken) style URL.
+const STYLE: string = import.meta.env.VITE_MAP_STYLE || DEFAULT_STYLE
 const INLINE_STYLE: maplibregl.StyleSpecification = {
   version: 8,
   sources: {},
