@@ -202,3 +202,60 @@ body {
 .update-kind { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
 .update-title { font-size: 13px; font-weight: 600; }
 .update-body { font-size: 12px; color: var(--muted); line-height: 1.45; }
+
+/* ---- buttons ---- */
+.btn-primary { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-ghost { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; font-size: 13px; cursor: pointer; }
+.btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-danger { background: transparent; color: #f85149; border: 1px solid #f8514966; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ---- modal + settings ---- */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px; }
+.modal { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); display: flex; flex-direction: column; max-height: 88vh; }
+.modal-head { display: flex; align-items: center; justify-content: space-between; padding: 15px 18px; border-bottom: 1px solid var(--line); flex: none; }
+.modal-head h2 { margin: 0; font-size: 18px; }
+.settings-modal { width: 720px; max-width: 100%; }
+.settings-body { display: flex; min-height: 0; flex: 1; }
+.settings-nav { width: 168px; flex: none; border-right: 1px solid var(--line); padding: 10px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+.settings-nav-item { text-align: left; background: transparent; border: none; color: var(--muted); padding: 9px 11px; border-radius: 8px; font-size: 13px; cursor: pointer; }
+.settings-nav-item:hover { background: var(--panel-2); color: var(--text); }
+.settings-nav-item.active { background: var(--panel-2); color: var(--text); font-weight: 600; }
+.settings-panel { flex: 1; overflow-y: auto; padding: 18px 20px; min-width: 0; }
+.settings-field { margin-bottom: 18px; }
+.settings-field-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 8px; }
+.settings-inline { display: flex; align-items: center; gap: 12px; }
+.settings-inline input[type=range] { flex: 1; accent-color: var(--accent); }
+.settings-hint { font-size: 12px; color: var(--muted); line-height: 1.5; margin: 8px 0 0; }
+.settings-select { background: var(--panel-2); border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 8px 10px; font-size: 13px; width: 100%; }
+
+.segmented { display: inline-flex; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 3px; gap: 3px; }
+.seg { background: transparent; border: none; color: var(--muted); padding: 6px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; }
+.seg.active { background: var(--accent); color: #fff; font-weight: 600; }
+
+.perm-badge { font-size: 12px; border-radius: 999px; padding: 3px 10px; border: 1px solid var(--line); color: var(--muted); }
+.perm-badge.granted { color: #3fb950; border-color: #3fb95055; }
+.perm-badge.denied { color: #f85149; border-color: #f8514955; }
+
+.tutorial { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.tutorial li { display: flex; gap: 12px; }
+.tut-n { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--panel-2); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--text); }
+.tutorial b { font-size: 14px; }
+.tutorial p { margin: 3px 0 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+.faq details { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.faq summary { cursor: pointer; font-size: 14px; font-weight: 600; }
+.faq p { margin: 8px 0 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+.changelog-entry h3 { font-size: 15px; margin: 0 0 8px; }
+.changelog-entry h3 span { color: var(--muted); font-weight: 400; font-size: 13px; }
+.changelog-entry ul { margin: 0; padding-left: 18px; }
+.changelog-entry li { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+.about-version { font-size: 15px; margin: 0 0 4px; }
+.about-link { color: #7aa2ff; font-size: 13px; text-decoration: none; }
+.sources { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.sources li { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
+.sources a { color: #7aa2ff; text-decoration: none; }
+.sources span { color: var(--muted); }

@@ -5,6 +5,7 @@ import { dataMode } from './data/fires'
 import { deriveAlerts } from './domain'
 import { useTheme } from './lib/theme'
 import { useUnits } from './lib/units'
+import { useNotificationSound } from './lib/notificationSound'
 import { useKeyLocations } from './hooks/useKeyLocations'
 import { usePlaceAlerts } from './hooks/usePlaceAlerts'
 import { BASEMAPS, DEFAULT_BASEMAP_ID } from './lib/basemaps'
@@ -13,6 +14,7 @@ import { IncidentList } from './components/IncidentList'
 import { AlertsList } from './components/AlertsList'
 import { PlacesList } from './components/PlacesList'
 import { IncidentDetail } from './components/IncidentDetail'
+import { SettingsModal } from './components/SettingsModal'
 
 type LeftTab = 'incidents' | 'alerts' | 'places'
 
@@ -21,7 +23,9 @@ export default function App() {
   const { data: fires = [], isLoading, isError, error } = useFires()
   const { theme, toggle: toggleTheme } = useTheme()
   const { units, toggle: toggleUnits } = useUnits()
-  const { locations, add: addLocation, update: updateLocation, remove: removeLocation } = useKeyLocations()
+  const { locations, add: addLocation, update: updateLocation, remove: removeLocation, clear: clearLocations } = useKeyLocations()
+  const { soundEnabled, volume } = useNotificationSound()
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const [showHotspots, setShowHotspots] = useState(true)
   const { data: hotspots = [] } = useHotspots(showHotspots)
@@ -37,8 +41,8 @@ export default function App() {
   const alerts = useMemo(() => deriveAlerts(fires), [fires])
   const selected = fires.find((f) => f.id === selectedId) ?? null
 
-  // OS notifications when a fire enters an alert-enabled place's radius.
-  usePlaceAlerts(fires, locations)
+  // OS notifications (+ chime) when a fire enters an alert-enabled place's radius.
+  usePlaceAlerts(fires, locations, { enabled: soundEnabled, volume })
 
   const handlePlace = (lat: number, lng: number) => {
     addLocation(lat, lng)
@@ -60,8 +64,18 @@ export default function App() {
           {dataMode === 'demo' && <span className="demo" title="Bundled sample data (VITE_DATA_MODE=demo)">demo data</span>}
           <button className="toggle-btn" onClick={toggleUnits} type="button" title="Toggle units">{units === 'imperial' ? 'mi · ac' : 'km · ha'}</button>
           <button className="toggle-btn" onClick={toggleTheme} type="button" title="Toggle theme">{theme === 'dark' ? '☾' : '☀'}</button>
+          <button className="toggle-btn" onClick={() => setSettingsOpen(true)} type="button" title="Settings" aria-label="Settings">⚙</button>
         </div>
       </header>
+
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        basemapId={basemapId}
+        onSetBasemap={setBasemapId}
+        placeCount={locations.length}
+        onClearPlaces={clearLocations}
+      />
 
       {isError && <div className="banner error">Could not load incidents: {(error as Error).message}</div>}
 

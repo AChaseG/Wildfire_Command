@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from './lib/theme'
 import { UnitsProvider } from './lib/units'
+import { NotificationSoundProvider } from './lib/notificationSound'
 import App from './App'
 import './index.css'
 
@@ -18,7 +19,9 @@ createRoot(root).render(
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <UnitsProvider>
-          <App />
+          <NotificationSoundProvider>
+            <App />
+          </NotificationSoundProvider>
         </UnitsProvider>
       </ThemeProvider>
     </QueryClientProvider>

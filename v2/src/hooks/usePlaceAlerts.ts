@@ -1,5 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { detectProximities, proximityKey, type SavedPlace, kmToMiles, type Fire } from '../domain'
+import { playChime } from '../lib/notificationSound'
+
+interface SoundOptions { enabled: boolean; volume: number }
 
 export function notificationsSupported(): boolean {
   return typeof window !== 'undefined' && 'Notification' in window
@@ -17,14 +20,17 @@ export async function requestNotificationPermission(): Promise<boolean> {
 // alert-enabled place's radius, de-duped so each (place, fire) pair announces
 // once. Requires granted Notification permission. Works while a tab is open;
 // true push when the app is closed needs a backend + push service.
-export function usePlaceAlerts(fires: Fire[], places: SavedPlace[]) {
+export function usePlaceAlerts(fires: Fire[], places: SavedPlace[], sound?: SoundOptions) {
   const notifiedRef = useRef<Set<string>>(new Set())
+  const soundRef = useRef(sound)
+  soundRef.current = sound
 
   useEffect(() => {
     if (!notificationsSupported() || Notification.permission !== 'granted') return
 
     const hits = detectProximities(fires, places)
     const currentKeys = new Set(hits.map(proximityKey))
+    let played = false
 
     for (const hit of hits) {
       const key = proximityKey(hit)
@@ -38,6 +44,10 @@ export function usePlaceAlerts(fires: Fire[], places: SavedPlace[]) {
         })
       } catch {
         // Notification construction can throw on some platforms; ignore.
+      }
+      if (!played && soundRef.current?.enabled) {
+        playChime(soundRef.current.volume)
+        played = true
       }
     }
 

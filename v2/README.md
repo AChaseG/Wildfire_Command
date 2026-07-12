@@ -79,6 +79,11 @@ localStorage, defaulting to the OS preference); a measure tool that sums
 great-circle distance along clicked points using the domain `haversineKm`; and
 **saved places with proximity alerts**.
 
+A **Settings** modal (gear in the top bar) collects preferences (theme, units,
+default basemap), notification controls (permission, alert sound + volume with a
+Web-Audio chime), a Tutorial, FAQ, What's-new changelog, an About/data-sources
+section, and a "clear saved places" reset.
+
 ### Places & alerts
 
 Save named locations by **street address** (geocoded via OpenStreetMap

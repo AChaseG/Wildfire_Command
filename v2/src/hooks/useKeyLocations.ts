@@ -55,5 +55,7 @@ export function useKeyLocations() {
     setLocations((ls) => ls.filter((l) => l.id !== id))
   }, [])
 
-  return { locations, add, update, remove }
+  const clear = useCallback(() => setLocations([]), [])
+
+  return { locations, add, update, remove, clear }
 }

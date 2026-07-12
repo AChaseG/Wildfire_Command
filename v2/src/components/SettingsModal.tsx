@@ -1,0 +1,178 @@
+import { useEffect, useState } from 'react'
+import { useTheme } from '../lib/theme'
+import { useUnits } from '../lib/units'
+import { useNotificationSound, playChime } from '../lib/notificationSound'
+import { BASEMAPS } from '../lib/basemaps'
+import { notificationsSupported, requestNotificationPermission } from '../hooks/usePlaceAlerts'
+import { APP_VERSION, CHANGELOG, DATA_SOURCES, FAQ, REPO_URL, TUTORIAL } from '../content'
+
+type Section = 'general' | 'notifications' | 'tutorial' | 'faq' | 'whatsnew' | 'about'
+
+const NAV: { id: Section; label: string }[] = [
+  { id: 'general', label: 'General' },
+  { id: 'notifications', label: 'Notifications' },
+  { id: 'tutorial', label: 'Tutorial' },
+  { id: 'faq', label: 'FAQ' },
+  { id: 'whatsnew', label: "What's new" },
+  { id: 'about', label: 'About' },
+]
+
+function Segmented<T extends string>({ value, options, onChange }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void }) {
+  return (
+    <div className="segmented">
+      {options.map((o) => (
+        <button key={o.value} type="button" className={`seg ${value === o.value ? 'active' : ''}`} onClick={() => onChange(o.value)}>{o.label}</button>
+      ))}
+    </div>
+  )
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="settings-field">
+      <div className="settings-field-label">{label}</div>
+      {children}
+    </div>
+  )
+}
+
+interface Props {
+  open: boolean
+  onClose: () => void
+  basemapId: string
+  onSetBasemap: (id: string) => void
+  placeCount: number
+  onClearPlaces: () => void
+}
+
+export function SettingsModal({ open, onClose, basemapId, onSetBasemap, placeCount, onClearPlaces }: Props) {
+  const [section, setSection] = useState<Section>('general')
+  const { theme, toggle: toggleTheme } = useTheme()
+  const { units, toggle: toggleUnits } = useUnits()
+  const { soundEnabled, volume, setSoundEnabled, setVolume } = useNotificationSound()
+  const [perm, setPerm] = useState<string>(notificationsSupported() ? Notification.permission : 'unsupported')
+
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, onClose])
+
+  if (!open) return null
+
+  const setTheme = (t: 'dark' | 'light') => { if (t !== theme) toggleTheme() }
+  const setUnits = (u: 'imperial' | 'metric') => { if (u !== units) toggleUnits() }
+  const enableNotifs = async () => {
+    await requestNotificationPermission()
+    setPerm(notificationsSupported() ? Notification.permission : 'unsupported')
+  }
+  const clearPlaces = () => {
+    if (placeCount === 0) return
+    if (window.confirm(`Remove all ${placeCount} saved place${placeCount === 1 ? '' : 's'}?`)) onClearPlaces()
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal settings-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Settings">
+        <div className="modal-head">
+          <h2>Settings</h2>
+          <button className="icon-btn" onClick={onClose} type="button" aria-label="Close settings">✕</button>
+        </div>
+        <div className="settings-body">
+          <nav className="settings-nav">
+            {NAV.map((n) => (
+              <button key={n.id} type="button" className={`settings-nav-item ${section === n.id ? 'active' : ''}`} onClick={() => setSection(n.id)}>{n.label}</button>
+            ))}
+          </nav>
+
+          <div className="settings-panel">
+            {section === 'general' && (
+              <>
+                <Field label="Theme">
+                  <Segmented value={theme} onChange={setTheme} options={[{ value: 'dark', label: 'Dark' }, { value: 'light', label: 'Light' }]} />
+                </Field>
+                <Field label="Distance & area units">
+                  <Segmented value={units} onChange={setUnits} options={[{ value: 'imperial', label: 'Imperial (mi · ac)' }, { value: 'metric', label: 'Metric (km · ha)' }]} />
+                </Field>
+                <Field label="Default basemap">
+                  <select className="settings-select" value={basemapId} onChange={(e) => onSetBasemap(e.target.value)}>
+                    {BASEMAPS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+                  </select>
+                </Field>
+              </>
+            )}
+
+            {section === 'notifications' && (
+              <>
+                <Field label="Browser notifications">
+                  <div className="settings-inline">
+                    <span className={`perm-badge ${perm}`}>{perm === 'granted' ? 'Allowed' : perm === 'denied' ? 'Blocked' : perm === 'unsupported' ? 'Unsupported' : 'Not set'}</span>
+                    {perm === 'default' && <button className="btn-primary" type="button" onClick={enableNotifs}>Enable</button>}
+                  </div>
+                  <p className="settings-hint">Proximity alerts appear as OS notifications while a tab is open. Alerts when the app is closed need a backend + push service.</p>
+                </Field>
+                <Field label="Alert sound">
+                  <button className={`switch ${soundEnabled ? 'on' : ''}`} type="button" role="switch" aria-checked={soundEnabled} onClick={() => setSoundEnabled(!soundEnabled)}>
+                    <span className="switch-knob" /><span className="switch-label">{soundEnabled ? 'On' : 'Off'}</span>
+                  </button>
+                </Field>
+                <Field label={`Volume — ${Math.round(volume * 100)}%`}>
+                  <div className="settings-inline">
+                    <input type="range" min={0} max={100} value={Math.round(volume * 100)} disabled={!soundEnabled} onChange={(e) => setVolume(Number(e.target.value) / 100)} />
+                    <button className="btn-ghost" type="button" onClick={() => playChime(volume)} disabled={!soundEnabled}>Test</button>
+                  </div>
+                </Field>
+              </>
+            )}
+
+            {section === 'tutorial' && (
+              <ol className="tutorial">
+                {TUTORIAL.map((s, i) => (
+                  <li key={s.title}><span className="tut-n">{i + 1}</span><div><b>{s.title}</b><p>{s.body}</p></div></li>
+                ))}
+              </ol>
+            )}
+
+            {section === 'faq' && (
+              <div className="faq">
+                {FAQ.map((f) => (
+                  <details key={f.q}><summary>{f.q}</summary><p>{f.a}</p></details>
+                ))}
+              </div>
+            )}
+
+            {section === 'whatsnew' && (
+              <div className="changelog">
+                {CHANGELOG.map((c) => (
+                  <div key={c.version} className="changelog-entry">
+                    <h3>v{c.version} <span>· {c.date}</span></h3>
+                    <ul>{c.items.map((it) => <li key={it}>{it}</li>)}</ul>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {section === 'about' && (
+              <>
+                <p className="about-version">Wildfire Command <b>v{APP_VERSION}</b></p>
+                <p className="settings-hint">A wildfire situational-awareness console. Your places and preferences are stored only in this browser.</p>
+                <a className="about-link" href={REPO_URL} target="_blank" rel="noreferrer">Source on GitHub ↗</a>
+                <div className="settings-field-label" style={{ marginTop: 16 }}>Data sources</div>
+                <ul className="sources">
+                  {DATA_SOURCES.map((d) => (
+                    <li key={d.name}><a href={d.url} target="_blank" rel="noreferrer">{d.name}</a><span>{d.note}</span></li>
+                  ))}
+                </ul>
+                <div className="settings-field-label" style={{ marginTop: 16 }}>Reset</div>
+                <button className="btn-danger" type="button" onClick={clearPlaces} disabled={placeCount === 0}>
+                  Clear saved places{placeCount > 0 ? ` (${placeCount})` : ''}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
