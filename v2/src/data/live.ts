@@ -1,13 +1,16 @@
 import { wfigsConnector } from '../../supabase/functions/_shared/connectors/wfigs'
+import { enrichFiresWithWeather } from './liveWeather'
 import type { Fire } from '../domain'
 
 // Browser-direct incident source: fetches NIFC WFIGS straight from the public
 // ArcGIS feature service (which sends permissive CORS headers) and reuses the
 // connector's pure parser. This lets the app run with live data and NO backend
 // at all — the same parseWfigs the edge function uses, running in the browser.
+// Wind + AQI are then enriched from Open-Meteo (also keyless/CORS) so the detail
+// panel populates without a backend.
 export async function fetchLiveFires(): Promise<Fire[]> {
   const rows = await wfigsConnector.fetch()
-  return rows.map((r, i) => ({
+  const fires: Fire[] = rows.map((r, i) => ({
     id: r.external_id || `wfigs-${i}`,
     source: r.source,
     externalId: r.external_id,
@@ -25,4 +28,5 @@ export async function fetchLiveFires(): Promise<Fire[]> {
     monitored: false,
     updatedAt: r.updated_at,
   }))
+  return enrichFiresWithWeather(fires)
 }

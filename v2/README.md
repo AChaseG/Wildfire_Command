@@ -81,10 +81,12 @@ continuous, shared log, run the Supabase backend.
 The app runs in one of three modes (`src/data/fires.ts`):
 
 - **live** (default, no backend): the browser fetches NIFC WFIGS directly from
-  the public ArcGIS feature service and reuses the connector's pure `parseWfigs`.
-  Deploys as a pure static site (e.g. GitHub Pages) with live incident data and
-  zero infrastructure. Trade-off: no update history, hotspots, or AQI (those need
-  a backend/keys).
+  the public ArcGIS feature service and reuses the connector's pure `parseWfigs`,
+  then enriches each incident with wind + US AQI from Open-Meteo's keyless,
+  CORS-enabled forecast and air-quality APIs (`src/data/liveWeather.ts`).
+  Deploys as a pure static site (e.g. GitHub Pages) with live incident data,
+  wind, and air quality and zero infrastructure. Trade-off: no FIRMS hotspots,
+  and the update history is browser-local rather than server-ingested.
 - **supabase** (`VITE_SUPABASE_URL` set): reads the project's tables — adds the
   ingested history, FIRMS hotspots, AQI enrichment, and realtime.
 - **demo** (`VITE_DATA_MODE=demo`): bundled fixtures, for offline development.

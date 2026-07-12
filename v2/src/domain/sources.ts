@@ -59,10 +59,12 @@ export function fireSources(fire: Fire): FireSource[] {
     })
   }
   if (fire.weather.aqi != null) {
+    // Browser-direct (live) AQI comes from Open-Meteo's Air Quality API; the
+    // optional backend instead sources it from PurpleAir sensors.
     sources.push({
-      name: 'PurpleAir',
-      contributes: 'Air quality (AQI)',
-      url: `https://map.purpleair.com/?zoom=11&lat=${lat.toFixed(4)}&lng=${lng.toFixed(4)}`,
+      name: 'Open-Meteo Air Quality',
+      contributes: 'Air quality (US AQI)',
+      url: `https://open-meteo.com/en/docs/air-quality-api?${at}`,
       kind: 'data',
     })
   }
