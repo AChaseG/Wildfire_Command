@@ -13,7 +13,8 @@ import {
   type FireUpdate,
   type SavedPlace,
 } from '../domain'
-import { useFireUpdates } from '../data/hooks'
+import { useFireNews, useFireUpdates } from '../data/hooks'
+import { gdeltSearchUrl } from '../data/fireNews'
 import { getFireHistory } from '../lib/fireHistory'
 import { useUnits } from '../lib/units'
 import { StatusBadge } from './badges'
@@ -50,6 +51,7 @@ interface Props {
 export function IncidentDetail({ fire, places, historyVersion = 0, onClose }: Props) {
   const { units } = useUnits()
   const { data: updates, isLoading } = useFireUpdates(fire.id)
+  const { data: news, isLoading: newsLoading, isError: newsError } = useFireNews(fire)
   const resolution = fire.status === 'active' ? resolveFireStatus(fire) : null
 
   const sources = useMemo(() => fireSources(fire), [fire])
@@ -162,6 +164,26 @@ export function IncidentDetail({ fire, places, historyVersion = 0, onClose }: Pr
             </li>
           ))}
         </ol>
+      </div>
+
+      <div className="detail-section news-section">
+        <h3>Nearby news</h3>
+        {newsLoading && <p className="list-empty">Checking news…</p>}
+        {!newsLoading && newsError && <p className="news-note">Couldn’t load news right now.</p>}
+        {!newsLoading && !newsError && (news ?? []).length === 0 && (
+          <p className="news-note">No recent news matched this incident.</p>
+        )}
+        {!newsLoading && (news ?? []).length > 0 && (
+          <ul className="news-list">
+            {(news ?? []).map((n) => (
+              <li key={n.url} className="news-item">
+                <a href={n.url} target="_blank" rel="noreferrer" className="news-title">{n.title}</a>
+                <span className="news-meta">{n.domain}{n.publishedAt ? ` · ${updateDate(n.publishedAt)}` : ''}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <a className="news-source" href={gdeltSearchUrl(fire)} target="_blank" rel="noreferrer">Search via GDELT ↗</a>
       </div>
 
       <div className="detail-section sources-section">
