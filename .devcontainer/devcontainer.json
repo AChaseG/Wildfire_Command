@@ -1,0 +1,21 @@
+{
+  "name": "Wildfire Command v2",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:22",
+  "workspaceFolder": "/workspaces/Wildfire_Command",
+  // Install deps for the v2 app on create.
+  "postCreateCommand": "cd v2 && npm ci",
+  // Auto-start the dev server when you attach, so the port forwards to a live URL.
+  "postAttachCommand": "cd v2 && npm run dev",
+  "forwardPorts": [5173],
+  "portsAttributes": {
+    "5173": {
+      "label": "Wildfire Command (v2 dev)",
+      "onAutoForward": "openPreview"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["dbaeumer.vscode-eslint"]
+    }
+  }
+}
