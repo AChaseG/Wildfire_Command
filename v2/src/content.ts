@@ -1,6 +1,6 @@
 // Static help/marketing content surfaced in Settings.
 
-export const APP_VERSION = '2.0.0'
+export const APP_VERSION = '2.0.1'
 export const REPO_URL = 'https://github.com/AChaseG/Wildfire_Command'
 
 export interface TutorialStep { title: string; body: string }
@@ -25,22 +25,50 @@ export const FAQ: FaqItem[] = [
   { q: 'Do the alert radius and distances use my chosen units?', a: 'Yes. Everything follows the mi/km setting in Settings → General.' },
 ]
 
+// `date` is an ISO `YYYY-MM-DD` day. The What's-new view groups entries by that
+// day into dated sections, so multiple releases on the same day share a header.
 export interface ChangelogEntry { version: string; date: string; items: string[] }
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '2.0.1',
+    date: '2026-07-12',
+    items: [
+      'What’s-new opens automatically after an update; the FAQ greets first-time users.',
+      'Saved places now use a color star marker you choose, with a per-place alert radius.',
+      'Incident detail lists the distance from each of your saved places.',
+    ],
+  },
+  {
     version: '2.0.0',
-    date: '2026',
+    date: '2026-06-01',
     items: [
       'Ground-up rebuild on Vite + TypeScript + MapLibre GL with a tested domain core.',
       'Backend-less “live” mode: real incidents fetched directly from NIFC WFIGS — deployable as a static site.',
       'Basemap picker: Dark, Light, Streets, Satellite.',
-      'Saved places with color star markers, per-place alert radius, and proximity browser notifications.',
-      'Incident detail shows distance from each saved place.',
+      'Saved places with proximity browser notifications.',
       'Measure tool, FIRMS hotspot heatmap, alerts feed, light/dark theme, mi/km units.',
     ],
   },
 ]
+
+/** Format an ISO `YYYY-MM-DD` day for a changelog section header. */
+export function formatChangelogDate(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  if (!y || !m || !d) return iso
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
+}
+
+/** Group changelog entries by their date, preserving newest-first order. */
+export function groupChangelogByDate(entries: ChangelogEntry[]): { date: string; entries: ChangelogEntry[] }[] {
+  const groups: { date: string; entries: ChangelogEntry[] }[] = []
+  for (const entry of entries) {
+    const existing = groups.find((g) => g.date === entry.date)
+    if (existing) existing.entries.push(entry)
+    else groups.push({ date: entry.date, entries: [entry] })
+  }
+  return groups
+}
 
 export interface DataSource { name: string; url: string; note: string }
 

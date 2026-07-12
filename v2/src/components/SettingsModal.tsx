@@ -4,7 +4,7 @@ import { useUnits } from '../lib/units'
 import { useNotificationSound, playChime } from '../lib/notificationSound'
 import { BASEMAPS } from '../lib/basemaps'
 import { notificationsSupported, requestNotificationPermission } from '../hooks/usePlaceAlerts'
-import { APP_VERSION, CHANGELOG, DATA_SOURCES, FAQ, REPO_URL, TUTORIAL } from '../content'
+import { APP_VERSION, CHANGELOG, DATA_SOURCES, FAQ, REPO_URL, TUTORIAL, formatChangelogDate, groupChangelogByDate } from '../content'
 
 export type SettingsSection = 'general' | 'notifications' | 'tutorial' | 'faq' | 'whatsnew' | 'about'
 type Section = SettingsSection
@@ -152,11 +152,16 @@ export function SettingsModal({ open, onClose, basemapId, onSetBasemap, placeCou
 
             {section === 'whatsnew' && (
               <div className="changelog">
-                {CHANGELOG.map((c) => (
-                  <div key={c.version} className="changelog-entry">
-                    <h3>v{c.version} <span>· {c.date}</span></h3>
-                    <ul>{c.items.map((it) => <li key={it}>{it}</li>)}</ul>
-                  </div>
+                {groupChangelogByDate(CHANGELOG).map((group) => (
+                  <section key={group.date} className="changelog-date">
+                    <h3 className="changelog-date-head">{formatChangelogDate(group.date)}</h3>
+                    {group.entries.map((c) => (
+                      <div key={c.version} className="changelog-entry">
+                        <div className="changelog-version">v{c.version}</div>
+                        <ul>{c.items.map((it) => <li key={it}>{it}</li>)}</ul>
+                      </div>
+                    ))}
+                  </section>
                 ))}
               </div>
             )}

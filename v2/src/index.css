@@ -248,8 +248,11 @@ body {
 .faq summary { cursor: pointer; font-size: 14px; font-weight: 600; }
 .faq p { margin: 8px 0 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
 
-.changelog-entry h3 { font-size: 15px; margin: 0 0 8px; }
-.changelog-entry h3 span { color: var(--muted); font-weight: 400; font-size: 13px; }
+.changelog-date { margin-bottom: 20px; }
+.changelog-date-head { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.changelog-entry { margin-bottom: 12px; }
+.changelog-entry:last-child { margin-bottom: 0; }
+.changelog-version { font-size: 13px; font-weight: 600; margin: 0 0 6px; }
 .changelog-entry ul { margin: 0; padding-left: 18px; }
 .changelog-entry li { font-size: 13px; color: var(--muted); line-height: 1.6; }
 
