@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useFires, useHotspots } from './data/hooks'
 import { useRealtimeSync } from './data/realtime'
 import { dataMode } from './data/fires'
-import { deriveAlerts } from './domain'
+import { deriveAlerts, itemsInViewport, type Bounds } from './domain'
 import { useTheme } from './lib/theme'
 import { useUnits } from './lib/units'
 import { useNotificationSound } from './lib/notificationSound'
@@ -67,6 +67,15 @@ export default function App() {
   })
   useEffect(() => { localStorage.setItem('wc-basemap', basemapId) }, [basemapId])
 
+  // The incident list mirrors what's on the map: only fires inside the current
+  // viewport. FireMap emits its bounds on every pan/zoom; until the first emit
+  // (map still loading) we show everything.
+  const [viewBounds, setViewBounds] = useState<Bounds | null>(null)
+  const visibleFires = useMemo(
+    () => (viewBounds ? itemsInViewport(fires, viewBounds) : fires),
+    [fires, viewBounds],
+  )
+
   const alerts = useMemo(() => deriveAlerts(fires), [fires])
   const selected = fires.find((f) => f.id === selectedId) ?? null
 
@@ -112,11 +121,11 @@ export default function App() {
       <div className="console">
         <aside className="sidebar">
           <div className="tabs">
-            <button className={`tab ${leftTab === 'incidents' ? 'active' : ''}`} onClick={() => setLeftTab('incidents')} type="button">Incidents <span className="tab-count">{fires.length}</span></button>
+            <button className={`tab ${leftTab === 'incidents' ? 'active' : ''}`} onClick={() => setLeftTab('incidents')} type="button">Incidents <span className="tab-count">{visibleFires.length}</span></button>
             <button className={`tab ${leftTab === 'alerts' ? 'active' : ''}`} onClick={() => setLeftTab('alerts')} type="button">Alerts <span className="tab-count alert">{alerts.length}</span></button>
             <button className={`tab ${leftTab === 'places' ? 'active' : ''}`} onClick={() => setLeftTab('places')} type="button">Places <span className="tab-count">{locations.length}</span></button>
           </div>
-          {leftTab === 'incidents' && <IncidentList fires={fires} selectedId={selectedId} onSelect={setSelectedId} loading={isLoading} />}
+          {leftTab === 'incidents' && <IncidentList fires={visibleFires} selectedId={selectedId} onSelect={setSelectedId} loading={isLoading} total={fires.length} />}
           {leftTab === 'alerts' && <AlertsList alerts={alerts} onSelect={(id) => { setSelectedId(id); setLeftTab('incidents') }} />}
           {leftTab === 'places' && (
             <PlacesList
@@ -132,6 +141,7 @@ export default function App() {
             fires={fires} hotspots={hotspots} showHotspots={showHotspots}
             selectedId={selectedId} onSelect={setSelectedId}
             mode={mode} units={units} keyLocations={locations} onPlaceLocation={handlePlace}
+            onBoundsChange={setViewBounds}
             basemapId={basemapId}
           />
           <div className="map-tools">

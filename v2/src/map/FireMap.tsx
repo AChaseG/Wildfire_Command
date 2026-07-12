@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { SEVERITY_META, haversineKm, formatDistance, type Fire, type Hotspot, type UnitSystem } from '../domain'
+import { SEVERITY_META, haversineKm, formatDistance, type Bounds, type Fire, type Hotspot, type UnitSystem } from '../domain'
 import type { SavedPlace } from '../domain'
 import { basemapStyle } from '../lib/basemaps'
 
@@ -86,6 +86,24 @@ function measureToGeoJSON(points: [number, number][]): GeoData {
 
 const RADIUS: maplibregl.ExpressionSpecification = ['match', ['get', 'severity'], 'extreme', 11, 'high', 8, 'moderate', 6, 4]
 
+function normalizeLng(lng: number): number {
+  return ((((lng + 180) % 360) + 360) % 360) - 180
+}
+
+// The map's current viewport as plain lat/lng bounds. Longitudes are normalized
+// into [-180, 180]; a world-spanning view collapses to the full range so nothing
+// is filtered out, and a view that wraps the antimeridian yields west > east
+// (handled by domain isInViewport).
+function viewportBounds(map: maplibregl.Map): Bounds {
+  const b = map.getBounds()
+  const south = b.getSouth()
+  const north = b.getNorth()
+  let west = b.getWest()
+  let east = b.getEast()
+  if (east - west >= 360) return { south, north, west: -180, east: 180 }
+  return { south, north, west: normalizeLng(west), east: normalizeLng(east) }
+}
+
 function totalKm(points: [number, number][]): number {
   let km = 0
   for (let i = 1; i < points.length; i++) {
@@ -104,10 +122,11 @@ interface Props {
   units: UnitSystem
   keyLocations: SavedPlace[]
   onPlaceLocation: (lat: number, lng: number) => void
+  onBoundsChange?: (bounds: Bounds) => void
   basemapId: string
 }
 
-export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect, mode, units, keyLocations, onPlaceLocation, basemapId }: Props) {
+export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect, mode, units, keyLocations, onPlaceLocation, onBoundsChange, basemapId }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const placeMarkersRef = useRef<maplibregl.Marker[]>([])
@@ -123,6 +142,7 @@ export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect, m
   const modeRef = useRef(mode); modeRef.current = mode
   const onSelectRef = useRef(onSelect); onSelectRef.current = onSelect
   const onPlaceRef = useRef(onPlaceLocation); onPlaceRef.current = onPlaceLocation
+  const onBoundsRef = useRef(onBoundsChange); onBoundsRef.current = onBoundsChange
 
   useEffect(() => {
     if (mapRef.current || !containerRef.current) return
@@ -169,6 +189,7 @@ export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect, m
 
       loadedRef.current = true
       syncSelection(map, firesRef.current, selectedIdRef.current)
+      onBoundsRef.current?.(viewportBounds(map))
     }
 
     // Bind interactions once (they live on the map, not the style).
@@ -196,6 +217,10 @@ export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect, m
       if (m === 'place') { onPlaceRef.current(e.lngLat.lat, e.lngLat.lng); return }
       if (m === 'measure') setMeasurePoints((pts) => [...pts, [e.lngLat.lng, e.lngLat.lat]])
     })
+
+    // Keep the incident list in sync with what's visible: emit bounds after any
+    // pan or zoom (moveend covers both).
+    map.on('moveend', () => onBoundsRef.current?.(viewportBounds(map)))
 
     // If the remote basemap doesn't load in time, fall back to the inline style.
     let fellBack = false

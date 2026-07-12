@@ -23,9 +23,12 @@ interface Props {
   selectedId: string | null
   onSelect: (id: string) => void
   loading: boolean
+  // Total loaded incidents (fires is already limited to the map viewport), used
+  // to show how many are off-screen.
+  total?: number
 }
 
-export function IncidentList({ fires, selectedId, onSelect, loading }: Props) {
+export function IncidentList({ fires, selectedId, onSelect, loading, total }: Props) {
   const { units } = useUnits()
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<StatusFilter>('all')
@@ -63,7 +66,15 @@ export function IncidentList({ fires, selectedId, onSelect, loading }: Props) {
 
       <div className="list-scroll">
         {loading && <p className="list-empty">Loading incidents…</p>}
-        {!loading && visible.length === 0 && <p className="list-empty">No incidents match.</p>}
+        {!loading && typeof total === 'number' && total > fires.length && (
+          <p className="list-note">Showing {visible.length} in the current map view · {total} total. Zoom out to see more.</p>
+        )}
+        {!loading && visible.length === 0 && fires.length === 0 && typeof total === 'number' && total > 0 && (
+          <p className="list-empty">No incidents in the current map view. Zoom out or pan the map.</p>
+        )}
+        {!loading && visible.length === 0 && !(fires.length === 0 && typeof total === 'number' && total > 0) && (
+          <p className="list-empty">No incidents match.</p>
+        )}
         {visible.map((fire) => (
           <button
             key={fire.id}

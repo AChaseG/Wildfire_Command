@@ -43,3 +43,18 @@ export function boundsFromPoints(points: readonly GeoPoint[]): Bounds | null {
 export function isWithinBounds(p: GeoPoint, b: Bounds): boolean {
   return p.lat >= b.south && p.lat <= b.north && p.lng >= b.west && p.lng <= b.east
 }
+
+// Whether a point falls inside a map viewport. Like isWithinBounds but tolerant
+// of a viewport that wraps the antimeridian (west > east), which a world-spanning
+// zoom level can produce.
+export function isInViewport(p: GeoPoint, b: Bounds): boolean {
+  if (p.lat < b.south || p.lat > b.north) return false
+  return b.west <= b.east
+    ? p.lng >= b.west && p.lng <= b.east
+    : p.lng >= b.west || p.lng <= b.east
+}
+
+// The subset of items whose location is inside the viewport.
+export function itemsInViewport<T extends { location: GeoPoint }>(items: readonly T[], b: Bounds): T[] {
+  return items.filter((it) => isInViewport(it.location, b))
+}

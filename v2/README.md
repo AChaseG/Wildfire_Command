@@ -56,6 +56,12 @@ severity-colored WebGL circle layers with a selected-feature highlight, and an
 incident detail panel with a per-incident, dated updates feed. Data is fetched
 with TanStack Query (`src/data/`).
 
+The incident list is **viewport-driven**: it lists only the fires inside the
+current map view, so panning or zooming the map re-populates the panel (the map
+emits its bounds on every `moveend`; the pure `itemsInViewport` in `domain/geo`
+does the filtering, antimeridian-safe). A note shows how many incidents are
+off-screen.
+
 Hovering a fire icon pops a small quick-reference card with the incident name,
 start date, and containment percentage (built with `textContent`, so an
 externally-sourced fire name can't inject markup, and non-interactive so it

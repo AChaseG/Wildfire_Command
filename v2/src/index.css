@@ -81,6 +81,7 @@ body {
 
 .list-scroll { overflow-y: auto; flex: 1; }
 .list-empty { color: var(--muted); font-size: 13px; padding: 16px; }
+.list-note { color: var(--muted); font-size: 11px; padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--panel-2); }
 
 .row {
   width: 100%; display: flex; align-items: center; gap: 10px; text-align: left;
