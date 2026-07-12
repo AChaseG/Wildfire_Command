@@ -6,7 +6,8 @@ import { BASEMAPS } from '../lib/basemaps'
 import { notificationsSupported, requestNotificationPermission } from '../hooks/usePlaceAlerts'
 import { APP_VERSION, CHANGELOG, DATA_SOURCES, FAQ, REPO_URL, TUTORIAL } from '../content'
 
-type Section = 'general' | 'notifications' | 'tutorial' | 'faq' | 'whatsnew' | 'about'
+export type SettingsSection = 'general' | 'notifications' | 'tutorial' | 'faq' | 'whatsnew' | 'about'
+type Section = SettingsSection
 
 const NAV: { id: Section; label: string }[] = [
   { id: 'general', label: 'General' },
@@ -43,10 +44,17 @@ interface Props {
   onSetBasemap: (id: string) => void
   placeCount: number
   onClearPlaces: () => void
+  initialSection?: SettingsSection
 }
 
-export function SettingsModal({ open, onClose, basemapId, onSetBasemap, placeCount, onClearPlaces }: Props) {
-  const [section, setSection] = useState<Section>('general')
+export function SettingsModal({ open, onClose, basemapId, onSetBasemap, placeCount, onClearPlaces, initialSection }: Props) {
+  const [section, setSection] = useState<Section>(initialSection ?? 'general')
+
+  // Jump to the requested section each time the modal opens (e.g. auto-opened to
+  // FAQ for new users or What's-new after an update).
+  useEffect(() => {
+    if (open) setSection(initialSection ?? 'general')
+  }, [open, initialSection])
   const { theme, toggle: toggleTheme } = useTheme()
   const { units, toggle: toggleUnits } = useUnits()
   const { soundEnabled, volume, setSoundEnabled, setVolume } = useNotificationSound()

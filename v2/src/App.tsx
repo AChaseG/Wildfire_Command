@@ -14,7 +14,8 @@ import { IncidentList } from './components/IncidentList'
 import { AlertsList } from './components/AlertsList'
 import { PlacesList } from './components/PlacesList'
 import { IncidentDetail } from './components/IncidentDetail'
-import { SettingsModal } from './components/SettingsModal'
+import { SettingsModal, type SettingsSection } from './components/SettingsModal'
+import { APP_VERSION } from './content'
 
 type LeftTab = 'incidents' | 'alerts' | 'places'
 
@@ -26,6 +27,24 @@ export default function App() {
   const { locations, add: addLocation, update: updateLocation, remove: removeLocation, clear: clearLocations } = useKeyLocations()
   const { soundEnabled, volume } = useNotificationSound()
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsSection, setSettingsSection] = useState<SettingsSection>('general')
+
+  // First run → show the FAQ so new users learn the system. Returning users get
+  // the What's-new changelog whenever the app version has changed since they last
+  // opened it. Both keys persist in localStorage so this fires at most once each.
+  useEffect(() => {
+    const seen = localStorage.getItem('wc-seen')
+    const lastVersion = localStorage.getItem('wc-last-version')
+    if (!seen) {
+      setSettingsSection('faq')
+      setSettingsOpen(true)
+    } else if (lastVersion !== APP_VERSION) {
+      setSettingsSection('whatsnew')
+      setSettingsOpen(true)
+    }
+    localStorage.setItem('wc-seen', '1')
+    localStorage.setItem('wc-last-version', APP_VERSION)
+  }, [])
 
   const [showHotspots, setShowHotspots] = useState(true)
   const { data: hotspots = [] } = useHotspots(showHotspots)
@@ -64,13 +83,14 @@ export default function App() {
           {dataMode === 'demo' && <span className="demo" title="Bundled sample data (VITE_DATA_MODE=demo)">demo data</span>}
           <button className="toggle-btn" onClick={toggleUnits} type="button" title="Toggle units">{units === 'imperial' ? 'mi · ac' : 'km · ha'}</button>
           <button className="toggle-btn" onClick={toggleTheme} type="button" title="Toggle theme">{theme === 'dark' ? '☾' : '☀'}</button>
-          <button className="toggle-btn" onClick={() => setSettingsOpen(true)} type="button" title="Settings" aria-label="Settings">⚙</button>
+          <button className="toggle-btn" onClick={() => { setSettingsSection('general'); setSettingsOpen(true) }} type="button" title="Settings" aria-label="Settings">⚙</button>
         </div>
       </header>
 
       <SettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
+        initialSection={settingsSection}
         basemapId={basemapId}
         onSetBasemap={setBasemapId}
         placeCount={locations.length}
