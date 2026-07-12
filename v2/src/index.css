@@ -207,6 +207,7 @@ body {
 .source-name { font-size: 13px; font-weight: 600; color: #7aa2ff; text-decoration: none; }
 .source-name:hover { text-decoration: underline; }
 .source-contributes { font-size: 12px; color: var(--muted); line-height: 1.4; }
+.source-subhead { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; margin: 16px 0 10px; }
 
 /* ---- buttons ---- */
 .btn-primary { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }

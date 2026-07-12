@@ -42,6 +42,8 @@ export function IncidentDetail({ fire, places, onClose }: Props) {
   const resolution = fire.status === 'active' ? resolveFireStatus(fire) : null
 
   const sources = useMemo(() => fireSources(fire), [fire])
+  const dataSources = sources.filter((s) => s.kind === 'data')
+  const referenceSources = sources.filter((s) => s.kind === 'reference')
 
   const placeDistances = useMemo(
     () =>
@@ -119,7 +121,17 @@ export function IncidentDetail({ fire, places, onClose }: Props) {
       <div className="detail-section sources-section">
         <h3>Sources</h3>
         <ul className="source-list">
-          {sources.map((s) => (
+          {dataSources.map((s) => (
+            <li key={s.name} className="source-item">
+              <a href={s.url} target="_blank" rel="noreferrer" className="source-name">{s.name} ↗</a>
+              <span className="source-contributes">{s.contributes}</span>
+            </li>
+          ))}
+        </ul>
+
+        <h4 className="source-subhead">Related sources</h4>
+        <ul className="source-list">
+          {referenceSources.map((s) => (
             <li key={s.name} className="source-item">
               <a href={s.url} target="_blank" rel="noreferrer" className="source-name">{s.name} ↗</a>
               <span className="source-contributes">{s.contributes}</span>
