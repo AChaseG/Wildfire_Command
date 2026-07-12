@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useFires, useHotspots } from './data/hooks'
 import { useRealtimeSync } from './data/realtime'
 import { dataMode } from './data/fires'
@@ -6,6 +6,7 @@ import { deriveAlerts } from './domain'
 import { useTheme } from './lib/theme'
 import { useUnits } from './lib/units'
 import { useKeyLocations } from './hooks/useKeyLocations'
+import { BASEMAPS, DEFAULT_BASEMAP_ID } from './lib/basemaps'
 import { FireMap, type MapMode } from './map/FireMap'
 import { IncidentList } from './components/IncidentList'
 import { AlertsList } from './components/AlertsList'
@@ -26,6 +27,11 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [leftTab, setLeftTab] = useState<LeftTab>('incidents')
   const [mode, setMode] = useState<MapMode>('select')
+  const [basemapId, setBasemapId] = useState(() => {
+    const saved = localStorage.getItem('wc-basemap')
+    return saved && BASEMAPS.some((b) => b.id === saved) ? saved : DEFAULT_BASEMAP_ID
+  })
+  useEffect(() => { localStorage.setItem('wc-basemap', basemapId) }, [basemapId])
 
   const alerts = useMemo(() => deriveAlerts(fires), [fires])
   const selected = fires.find((f) => f.id === selectedId) ?? null
@@ -64,7 +70,7 @@ export default function App() {
           </div>
           {leftTab === 'incidents' && <IncidentList fires={fires} selectedId={selectedId} onSelect={setSelectedId} loading={isLoading} />}
           {leftTab === 'alerts' && <AlertsList alerts={alerts} onSelect={(id) => { setSelectedId(id); setLeftTab('incidents') }} />}
-          {leftTab === 'places' && <PlacesList locations={locations} placing={mode === 'place'} onTogglePlacing={togglePlacing} onRemove={removeLocation} />}
+          {leftTab === 'places' && <PlacesList locations={locations} placing={mode === 'place'} onTogglePlacing={togglePlacing} onRemove={removeLocation} onAdd={addLocation} />}
         </aside>
 
         <div className="map-wrap">
@@ -72,6 +78,7 @@ export default function App() {
             fires={fires} hotspots={hotspots} showHotspots={showHotspots}
             selectedId={selectedId} onSelect={setSelectedId}
             mode={mode} units={units} keyLocations={locations} onPlaceLocation={handlePlace}
+            basemapId={basemapId}
           />
           <div className="map-tools">
             <button className={`map-toggle ${showHotspots ? 'on' : ''}`} onClick={() => setShowHotspots((v) => !v)} type="button">
@@ -81,6 +88,9 @@ export default function App() {
             <button className={`map-toggle ${mode === 'measure' ? 'on' : ''}`} onClick={toggleMeasure} type="button">
               <span className="toggle-dot" /> Measure
             </button>
+            <select className="basemap-select" value={basemapId} onChange={(e) => setBasemapId(e.target.value)} aria-label="Basemap">
+              {BASEMAPS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+            </select>
           </div>
         </div>
 

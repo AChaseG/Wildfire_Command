@@ -3,6 +3,7 @@ import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { SEVERITY_META, haversineKm, formatDistance, type Fire, type Hotspot, type UnitSystem } from '../domain'
 import type { KeyLocation } from '../hooks/useKeyLocations'
+import { basemapStyle } from '../lib/basemaps'
 
 export type MapMode = 'select' | 'measure' | 'place'
 
@@ -14,13 +15,8 @@ const US_CENTER: [number, number] = [-108, 41]
 
 type GeoData = Parameters<maplibregl.GeoJSONSource['setData']>[0]
 
-// A real keyless dark basemap by default (no API key/signup); override with
-// VITE_MAP_STYLE. If the remote style can't load, we fall back to the inline
-// style below so the map always renders something.
-const DEFAULT_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
-// `||` (not `??`): CI passes an unset VITE_MAP_STYLE var as "", which must also
-// fall back to the default, not become an empty (broken) style URL.
-const STYLE: string = import.meta.env.VITE_MAP_STYLE || DEFAULT_STYLE
+// Basemap comes from the picker (lib/basemaps). If the chosen style can't load
+// in time, we fall back to the inline style below so the map always renders.
 const INLINE_STYLE: maplibregl.StyleSpecification = {
   version: 8,
   sources: {},
@@ -69,14 +65,17 @@ interface Props {
   units: UnitSystem
   keyLocations: KeyLocation[]
   onPlaceLocation: (lat: number, lng: number) => void
+  basemapId: string
 }
 
-export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect, mode, units, keyLocations, onPlaceLocation }: Props) {
+export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect, mode, units, keyLocations, onPlaceLocation, basemapId }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const loadedRef = useRef(false)
   const [measurePoints, setMeasurePoints] = useState<[number, number][]>([])
+  const measurePointsRef = useRef(measurePoints); measurePointsRef.current = measurePoints
 
+  const basemapIdRef = useRef(basemapId); basemapIdRef.current = basemapId
   const firesRef = useRef(fires); firesRef.current = fires
   const hotspotsRef = useRef(hotspots); hotspotsRef.current = hotspots
   const showHotspotsRef = useRef(showHotspots); showHotspotsRef.current = showHotspots
@@ -89,7 +88,7 @@ export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect, m
   useEffect(() => {
     if (mapRef.current || !containerRef.current) return
     const map = new maplibregl.Map({
-      container: containerRef.current, style: STYLE, center: US_CENTER, zoom: 3.7, attributionControl: { compact: true },
+      container: containerRef.current, style: basemapStyle(basemapIdRef.current), center: US_CENTER, zoom: 3.7, attributionControl: { compact: true },
     })
     mapRef.current = map
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
@@ -128,7 +127,7 @@ export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect, m
       map.addSource(PLACES_ID, { type: 'geojson', data: pointsToGeoJSON(keyLocationsRef.current.map((l) => [l.lng, l.lat])) })
       map.addLayer({ id: 'place-point', type: 'circle', source: PLACES_ID, paint: { 'circle-radius': 6, 'circle-color': '#5ad1c9', 'circle-stroke-color': '#0b0e14', 'circle-stroke-width': 2 } })
 
-      map.addSource(MEASURE_ID, { type: 'geojson', data: measureToGeoJSON([]) })
+      map.addSource(MEASURE_ID, { type: 'geojson', data: measureToGeoJSON(measurePointsRef.current) })
       map.addLayer({ id: 'measure-line', type: 'line', source: MEASURE_ID, filter: ['==', '$type', 'LineString'], paint: { 'line-color': '#7aa2ff', 'line-width': 2, 'line-dasharray': [2, 1.5] } })
       map.addLayer({ id: 'measure-point', type: 'circle', source: MEASURE_ID, filter: ['==', '$type', 'Point'], paint: { 'circle-radius': 4, 'circle-color': '#7aa2ff', 'circle-stroke-color': '#0b0e14', 'circle-stroke-width': 1.5 } })
 
@@ -204,6 +203,15 @@ export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect, m
     if (!map || !loadedRef.current) return
     syncSelection(map, firesRef.current, selectedId)
   }, [selectedId])
+
+  // Switch basemaps when the picker changes. The map is already built with the
+  // initial basemap, so skip the first run. setStyle clears our sources;
+  // addLayers re-adds them on the resulting 'style.load'.
+  const firstBasemapRun = useRef(true)
+  useEffect(() => {
+    if (firstBasemapRun.current) { firstBasemapRun.current = false; return }
+    mapRef.current?.setStyle(basemapStyle(basemapId))
+  }, [basemapId])
 
   return (
     <>

@@ -27,8 +27,11 @@ export function useKeyLocations() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(locations))
   }, [locations])
 
-  const add = useCallback((lat: number, lng: number) => {
-    setLocations((ls) => [...ls, { id: crypto.randomUUID(), name: `Place ${ls.length + 1}`, lat, lng }])
+  const add = useCallback((lat: number, lng: number, name?: string) => {
+    setLocations((ls) => [
+      ...ls,
+      { id: crypto.randomUUID(), name: name?.trim() || `Place ${ls.length + 1}`, lat, lng },
+    ])
   }, [])
 
   const remove = useCallback((id: string) => {

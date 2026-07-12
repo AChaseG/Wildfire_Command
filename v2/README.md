@@ -69,14 +69,16 @@ The app runs in one of three modes (`src/data/fires.ts`):
   ingested history, FIRMS hotspots, AQI enrichment, and realtime.
 - **demo** (`VITE_DATA_MODE=demo`): bundled fixtures, for offline development.
 
-The map uses a keyless dark basemap (CARTO dark-matter) by default and falls
-back to a self-contained inline style if that can't load. Override the basemap
-with `VITE_MAP_STYLE` (any MapLibre style URL, e.g. OpenFreeMap or MapTiler).
+A basemap picker offers keyless styles — Dark, Light, Streets (CARTO) and
+Satellite (Esri imagery) — falling back to a self-contained inline style if a
+remote style can't load. `VITE_MAP_STYLE` adds a "Custom" style and makes it the
+default.
 
-Polish (slice 5): light/dark theme and imperial/metric units (context-based,
-persisted to localStorage, defaulting to the OS preference); locally-saved key
-locations dropped by clicking the map in "place" mode; and a measure tool that
-sums great-circle distance along clicked points using the domain `haversineKm`.
+Polish: light/dark theme and imperial/metric units (context-based, persisted to
+localStorage, defaulting to the OS preference); key locations added by **street
+address** (geocoded via OpenStreetMap Nominatim) or by dropping a pin on the
+map; and a measure tool that sums great-circle distance along clicked points
+using the domain `haversineKm`.
 
 ## Ingestion
 
