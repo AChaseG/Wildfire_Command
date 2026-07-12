@@ -40,6 +40,14 @@ npm run typecheck  # tsc --noEmit
 npm run build      # typecheck + production build
 ```
 
+## Run in a Codespace
+
+The repo ships a `.devcontainer`, so you can view the app live with no local
+setup: on GitHub, **Code → Codespaces → New with options…**, pick the branch
+with `v2/`, and create it. The container installs deps, auto-starts the Vite dev
+server, and forwards port **5173** with a preview. It runs in **live** mode by
+default, so you'll see real WFIGS incidents on the CARTO basemap.
+
 ## UI
 
 A three-pane console (`src/App.tsx`): an incident list with search + status
