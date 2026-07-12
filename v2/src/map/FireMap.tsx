@@ -9,8 +9,20 @@ export type MapMode = 'select' | 'measure' | 'place'
 
 const SOURCE_ID = 'fires'
 const HOTSPOT_ID = 'hotspots'
-const PLACES_ID = 'places'
 const MEASURE_ID = 'measure'
+
+// A 5-point star, colored per place. Rendered as an HTML marker (not a style
+// layer) so it survives basemap switches and can be any color.
+function starMarkerElement(color: string, title: string): HTMLDivElement {
+  const el = document.createElement('div')
+  el.className = 'place-marker'
+  el.title = title
+  el.innerHTML =
+    `<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">` +
+    `<path d="M12 2 L15.09 8.26 L22 9.27 L17 14.14 L18.18 21.02 L12 17.77 L5.82 21.02 L7 14.14 L2 9.27 L8.91 8.26 Z" ` +
+    `fill="${color}" stroke="#0b0e14" stroke-width="1.2" stroke-linejoin="round"/></svg>`
+  return el
+}
 const US_CENTER: [number, number] = [-108, 41]
 
 type GeoData = Parameters<maplibregl.GeoJSONSource['setData']>[0]
@@ -71,6 +83,7 @@ interface Props {
 export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect, mode, units, keyLocations, onPlaceLocation, basemapId }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
+  const placeMarkersRef = useRef<maplibregl.Marker[]>([])
   const loadedRef = useRef(false)
   const [measurePoints, setMeasurePoints] = useState<[number, number][]>([])
   const measurePointsRef = useRef(measurePoints); measurePointsRef.current = measurePoints
@@ -79,7 +92,6 @@ export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect, m
   const firesRef = useRef(fires); firesRef.current = fires
   const hotspotsRef = useRef(hotspots); hotspotsRef.current = hotspots
   const showHotspotsRef = useRef(showHotspots); showHotspotsRef.current = showHotspots
-  const keyLocationsRef = useRef(keyLocations); keyLocationsRef.current = keyLocations
   const selectedIdRef = useRef(selectedId); selectedIdRef.current = selectedId
   const modeRef = useRef(mode); modeRef.current = mode
   const onSelectRef = useRef(onSelect); onSelectRef.current = onSelect
@@ -123,9 +135,6 @@ export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect, m
         id: 'fire-point', type: 'circle', source: SOURCE_ID,
         paint: { 'circle-radius': RADIUS, 'circle-color': ['get', 'color'], 'circle-stroke-color': '#ffffff', 'circle-stroke-width': ['case', ['boolean', ['feature-state', 'selected'], false], 3, 1] },
       })
-
-      map.addSource(PLACES_ID, { type: 'geojson', data: pointsToGeoJSON(keyLocationsRef.current.map((l) => [l.lng, l.lat])) })
-      map.addLayer({ id: 'place-point', type: 'circle', source: PLACES_ID, paint: { 'circle-radius': 6, 'circle-color': '#5ad1c9', 'circle-stroke-color': '#0b0e14', 'circle-stroke-width': 2 } })
 
       map.addSource(MEASURE_ID, { type: 'geojson', data: measureToGeoJSON(measurePointsRef.current) })
       map.addLayer({ id: 'measure-line', type: 'line', source: MEASURE_ID, filter: ['==', '$type', 'LineString'], paint: { 'line-color': '#7aa2ff', 'line-width': 2, 'line-dasharray': [2, 1.5] } })
@@ -179,10 +188,17 @@ export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect, m
     for (const id of ['hotspot-heat', 'hotspot-point']) if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', visibility)
   }, [showHotspots])
 
+  // Star markers are HTML overlays (independent of the style), so recreate them
+  // whenever the places change; they persist across basemap switches on their own.
   useEffect(() => {
     const map = mapRef.current
-    if (!map || !loadedRef.current) return
-    ;(map.getSource(PLACES_ID) as maplibregl.GeoJSONSource | undefined)?.setData(pointsToGeoJSON(keyLocations.map((l) => [l.lng, l.lat])))
+    if (!map) return
+    for (const marker of placeMarkersRef.current) marker.remove()
+    placeMarkersRef.current = keyLocations.map((place) =>
+      new maplibregl.Marker({ element: starMarkerElement(place.color, place.name) })
+        .setLngLat([place.lng, place.lat])
+        .addTo(map),
+    )
   }, [keyLocations])
 
   useEffect(() => {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { DEFAULT_ALERT_RADIUS_KM, type SavedPlace } from '../domain/places'
+import { DEFAULT_ALERT_RADIUS_KM, PLACE_COLORS, type SavedPlace } from '../domain/places'
 
 const STORAGE_KEY = 'wc-key-locations'
 
@@ -14,6 +14,7 @@ function load(): SavedPlace[] {
         name: String(p.name ?? 'Place'),
         lat: Number(p.lat),
         lng: Number(p.lng),
+        color: typeof p.color === 'string' ? p.color : PLACE_COLORS[0]!,
         alertEnabled: Boolean(p.alertEnabled),
         alertRadiusKm: Number.isFinite(p.alertRadiusKm) ? Number(p.alertRadiusKm) : DEFAULT_ALERT_RADIUS_KM,
       }))
@@ -39,6 +40,7 @@ export function useKeyLocations() {
         id: crypto.randomUUID(),
         name: name?.trim() || `Place ${ls.length + 1}`,
         lat, lng,
+        color: PLACE_COLORS[ls.length % PLACE_COLORS.length]!,
         alertEnabled: false,
         alertRadiusKm: DEFAULT_ALERT_RADIUS_KM,
       },

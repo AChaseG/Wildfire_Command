@@ -12,7 +12,7 @@ const fire = (id: string, lat: number, lng: number, status: Fire['status'] = 'ac
 })
 
 const place = (o: Partial<SavedPlace>): SavedPlace => ({
-  id: 'p', name: 'Home', lat: 34.05, lng: -118.24, alertEnabled: true, alertRadiusKm: 40, ...o,
+  id: 'p', name: 'Home', lat: 34.05, lng: -118.24, color: '#5ad1c9', alertEnabled: true, alertRadiusKm: 40, ...o,
 })
 
 describe('firesWithinRadius', () => {

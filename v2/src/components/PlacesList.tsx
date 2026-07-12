@@ -82,6 +82,11 @@ export function PlacesList({ locations, fires, units, placing, onTogglePlacing, 
           return (
             <div key={place.id} className="place-card">
               <div className="place-card-head">
+                <input
+                  type="color" className="place-color" value={place.color}
+                  onChange={(e) => onUpdate(place.id, { color: e.target.value })}
+                  title="Marker color" aria-label="Marker color"
+                />
                 <input className="place-name-input" value={place.name} onChange={(e) => onUpdate(place.id, { name: e.target.value })} aria-label="Place name" />
                 <button className="icon-btn small" onClick={() => onRemove(place.id)} type="button" aria-label={`Remove ${place.name}`}>✕</button>
               </div>

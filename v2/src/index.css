@@ -140,6 +140,10 @@ body {
 
 .place-card { border-bottom: 1px solid var(--line); padding: 11px 12px; display: flex; flex-direction: column; gap: 7px; }
 .place-card-head { display: flex; align-items: center; gap: 8px; }
+.place-color { flex: none; width: 26px; height: 26px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: none; cursor: pointer; }
+.place-color::-webkit-color-swatch-wrapper { padding: 2px; }
+.place-color::-webkit-color-swatch { border: none; border-radius: 4px; }
+.place-marker { cursor: pointer; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6)); }
 .place-name-input { flex: 1; min-width: 0; background: transparent; border: 1px solid transparent; color: var(--text); font-size: 14px; font-weight: 600; border-radius: 6px; padding: 4px 6px; }
 .place-name-input:hover { border-color: var(--line); }
 .place-name-input:focus { border-color: #3a4658; background: var(--panel-2); outline: none; }

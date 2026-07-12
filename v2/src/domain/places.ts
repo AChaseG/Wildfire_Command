@@ -8,11 +8,15 @@ export interface SavedPlace {
   name: string
   lat: number
   lng: number
+  color: string
   alertEnabled: boolean
   alertRadiusKm: number
 }
 
 export const DEFAULT_ALERT_RADIUS_KM = 40 // ~25 mi
+
+// New places cycle through these for variety; the user can recolor any place.
+export const PLACE_COLORS = ['#5ad1c9', '#f0a020', '#7aa2ff', '#a78bfa', '#3fb950', '#f85149']
 
 export interface PlaceProximity {
   place: SavedPlace

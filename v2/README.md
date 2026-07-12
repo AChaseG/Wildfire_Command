@@ -83,7 +83,8 @@ great-circle distance along clicked points using the domain `haversineKm`; and
 
 Save named locations by **street address** (geocoded via OpenStreetMap
 Nominatim) or by dropping a pin on the map, rename them inline, and give each a
-per-place **alert radius**. When alerts are enabled on a place, an active fire
+per-place **alert radius**. Places appear on the map as a **star** in a
+user-chosen color (rendered as an HTML marker, so it survives basemap switches). When alerts are enabled on a place, an active fire
 entering that radius triggers an **OS browser notification** (via the
 Notifications API), de-duped so each fire announces once. Proximity detection is
 a pure, tested domain function (`domain/places.ts`), and everything persists in
