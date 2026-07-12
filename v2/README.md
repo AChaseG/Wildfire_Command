@@ -135,10 +135,12 @@ radius of, and a **Sources** section (`domain/sources.ts`) with two tiers:
   updates and closures), and a NASA FIRMS map centered on the incident.
 
 The panel also has a **Nearby news** section (`src/data/fireNews.ts`): recent
-US news matched to the incident via GDELT's DOC 2.0 API — keyless and
-CORS-enabled, so it runs browser-direct like everything else. It's best-effort
-(cached 10 min, retried once) and its failure never blocks the panel; parsing
-is pure and tested.
+US news matched to the incident via GDELT's DOC 2.0 API — keyless, so it runs
+browser-direct like everything else. GDELT's JSON endpoint doesn't reliably
+send CORS headers for fetch, so results are loaded via **JSONP** (a `<script>`
+tag, which sidesteps CORS), with spaces `%20`-encoded as GDELT's query parser
+requires. It's best-effort (cached 10 min, retried once) and its failure never
+blocks the panel; query building and result parsing are pure and tested.
 
 Limitation: browser notifications only fire while a tab is open. Truly external
 alerts when the app is closed (email/SMS/push) require a backend + push service —
