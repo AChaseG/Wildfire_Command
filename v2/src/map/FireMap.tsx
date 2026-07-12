@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { SEVERITY_META, haversineKm, formatDistance, type Fire, type Hotspot, type UnitSystem } from '../domain'
-import type { KeyLocation } from '../hooks/useKeyLocations'
+import type { SavedPlace } from '../domain'
 import { basemapStyle } from '../lib/basemaps'
 
 export type MapMode = 'select' | 'measure' | 'place'
@@ -63,7 +63,7 @@ interface Props {
   onSelect: (id: string) => void
   mode: MapMode
   units: UnitSystem
-  keyLocations: KeyLocation[]
+  keyLocations: SavedPlace[]
   onPlaceLocation: (lat: number, lng: number) => void
   basemapId: string
 }

@@ -1,27 +1,32 @@
 import { useCallback, useEffect, useState } from 'react'
-
-export interface KeyLocation {
-  id: string
-  name: string
-  lat: number
-  lng: number
-}
+import { DEFAULT_ALERT_RADIUS_KM, type SavedPlace } from '../domain/places'
 
 const STORAGE_KEY = 'wc-key-locations'
 
-function load(): KeyLocation[] {
+function load(): SavedPlace[] {
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]')
-    return Array.isArray(parsed) ? parsed : []
+    if (!Array.isArray(parsed)) return []
+    // Migrate older entries that predate the alert fields.
+    return parsed
+      .map((p): SavedPlace => ({
+        id: String(p.id ?? crypto.randomUUID()),
+        name: String(p.name ?? 'Place'),
+        lat: Number(p.lat),
+        lng: Number(p.lng),
+        alertEnabled: Boolean(p.alertEnabled),
+        alertRadiusKm: Number.isFinite(p.alertRadiusKm) ? Number(p.alertRadiusKm) : DEFAULT_ALERT_RADIUS_KM,
+      }))
+      .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng))
   } catch {
     return []
   }
 }
 
-// Named places of interest (home, command post, ...), persisted locally since the
-// app has no accounts. Dropped by clicking the map in "place" mode.
+// Named places of interest, persisted locally (no accounts). Each can opt into
+// proximity alerts with its own radius.
 export function useKeyLocations() {
-  const [locations, setLocations] = useState<KeyLocation[]>(load)
+  const [locations, setLocations] = useState<SavedPlace[]>(load)
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(locations))
@@ -30,13 +35,23 @@ export function useKeyLocations() {
   const add = useCallback((lat: number, lng: number, name?: string) => {
     setLocations((ls) => [
       ...ls,
-      { id: crypto.randomUUID(), name: name?.trim() || `Place ${ls.length + 1}`, lat, lng },
+      {
+        id: crypto.randomUUID(),
+        name: name?.trim() || `Place ${ls.length + 1}`,
+        lat, lng,
+        alertEnabled: false,
+        alertRadiusKm: DEFAULT_ALERT_RADIUS_KM,
+      },
     ])
+  }, [])
+
+  const update = useCallback((id: string, patch: Partial<SavedPlace>) => {
+    setLocations((ls) => ls.map((l) => (l.id === id ? { ...l, ...patch } : l)))
   }, [])
 
   const remove = useCallback((id: string) => {
     setLocations((ls) => ls.filter((l) => l.id !== id))
   }, [])
 
-  return { locations, add, remove }
+  return { locations, add, update, remove }
 }

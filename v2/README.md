@@ -75,10 +75,24 @@ remote style can't load. `VITE_MAP_STYLE` adds a "Custom" style and makes it the
 default.
 
 Polish: light/dark theme and imperial/metric units (context-based, persisted to
-localStorage, defaulting to the OS preference); key locations added by **street
-address** (geocoded via OpenStreetMap Nominatim) or by dropping a pin on the
-map; and a measure tool that sums great-circle distance along clicked points
-using the domain `haversineKm`.
+localStorage, defaulting to the OS preference); a measure tool that sums
+great-circle distance along clicked points using the domain `haversineKm`; and
+**saved places with proximity alerts**.
+
+### Places & alerts
+
+Save named locations by **street address** (geocoded via OpenStreetMap
+Nominatim) or by dropping a pin on the map, rename them inline, and give each a
+per-place **alert radius**. When alerts are enabled on a place, an active fire
+entering that radius triggers an **OS browser notification** (via the
+Notifications API), de-duped so each fire announces once. Proximity detection is
+a pure, tested domain function (`domain/places.ts`), and everything persists in
+localStorage.
+
+Limitation: browser notifications only fire while a tab is open. Truly external
+alerts when the app is closed (email/SMS/push) require a backend + push service —
+that's the Supabase path, where the same `SavedPlace` model can drive a
+server-side proximity check.
 
 ## Ingestion
 

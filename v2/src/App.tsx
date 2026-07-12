@@ -6,6 +6,7 @@ import { deriveAlerts } from './domain'
 import { useTheme } from './lib/theme'
 import { useUnits } from './lib/units'
 import { useKeyLocations } from './hooks/useKeyLocations'
+import { usePlaceAlerts } from './hooks/usePlaceAlerts'
 import { BASEMAPS, DEFAULT_BASEMAP_ID } from './lib/basemaps'
 import { FireMap, type MapMode } from './map/FireMap'
 import { IncidentList } from './components/IncidentList'
@@ -20,7 +21,7 @@ export default function App() {
   const { data: fires = [], isLoading, isError, error } = useFires()
   const { theme, toggle: toggleTheme } = useTheme()
   const { units, toggle: toggleUnits } = useUnits()
-  const { locations, add: addLocation, remove: removeLocation } = useKeyLocations()
+  const { locations, add: addLocation, update: updateLocation, remove: removeLocation } = useKeyLocations()
 
   const [showHotspots, setShowHotspots] = useState(true)
   const { data: hotspots = [] } = useHotspots(showHotspots)
@@ -35,6 +36,9 @@ export default function App() {
 
   const alerts = useMemo(() => deriveAlerts(fires), [fires])
   const selected = fires.find((f) => f.id === selectedId) ?? null
+
+  // OS notifications when a fire enters an alert-enabled place's radius.
+  usePlaceAlerts(fires, locations)
 
   const handlePlace = (lat: number, lng: number) => {
     addLocation(lat, lng)
@@ -70,7 +74,13 @@ export default function App() {
           </div>
           {leftTab === 'incidents' && <IncidentList fires={fires} selectedId={selectedId} onSelect={setSelectedId} loading={isLoading} />}
           {leftTab === 'alerts' && <AlertsList alerts={alerts} onSelect={(id) => { setSelectedId(id); setLeftTab('incidents') }} />}
-          {leftTab === 'places' && <PlacesList locations={locations} placing={mode === 'place'} onTogglePlacing={togglePlacing} onRemove={removeLocation} onAdd={addLocation} />}
+          {leftTab === 'places' && (
+            <PlacesList
+              locations={locations} fires={fires} units={units}
+              placing={mode === 'place'} onTogglePlacing={togglePlacing}
+              onAdd={addLocation} onUpdate={updateLocation} onRemove={removeLocation}
+            />
+          )}
         </aside>
 
         <div className="map-wrap">
