@@ -42,9 +42,36 @@ function firesToGeoJSON(fires: Fire[]): GeoData {
     features: fires.map((f) => ({
       type: 'Feature', id: f.id,
       geometry: { type: 'Point', coordinates: [f.location.lng, f.location.lat] },
-      properties: { id: f.id, name: f.name, color: SEVERITY_META[f.severity].color, severity: f.severity },
+      properties: {
+        id: f.id, name: f.name, color: SEVERITY_META[f.severity].color, severity: f.severity,
+        containment: f.containmentPct, discoveredAt: f.discoveredAt,
+      },
     })),
   } as unknown as GeoData
+}
+
+function formatStart(iso: unknown): string {
+  const t = Date.parse(String(iso))
+  if (Number.isNaN(t)) return 'Unknown'
+  return new Date(t).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+// Quick-reference hover card. Built with textContent (never innerHTML) so an
+// externally-sourced fire name can't inject markup.
+function fireTooltipElement(props: Record<string, unknown> | null | undefined): HTMLElement {
+  const el = document.createElement('div')
+  el.className = 'fire-tip'
+  const name = document.createElement('div')
+  name.className = 'fire-tip-name'
+  name.textContent = String(props?.name ?? 'Incident')
+  const started = document.createElement('div')
+  started.className = 'fire-tip-row'
+  started.textContent = `Started ${formatStart(props?.discoveredAt)}`
+  const contained = document.createElement('div')
+  contained.className = 'fire-tip-row'
+  contained.textContent = `${Number(props?.containment ?? 0)}% contained`
+  el.append(name, started, contained)
+  return el
 }
 
 function pointsToGeoJSON(points: [number, number][]): GeoData {
@@ -150,8 +177,20 @@ export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect, m
       const id = e.features?.[0]?.properties?.id
       if (typeof id === 'string') onSelectRef.current(id)
     })
-    map.on('mouseenter', 'fire-point', () => { if (modeRef.current === 'select') map.getCanvas().style.cursor = 'pointer' })
-    map.on('mouseleave', 'fire-point', () => { if (modeRef.current === 'select') map.getCanvas().style.cursor = '' })
+    // Hover tooltip: a small quick-reference card anchored to the fire icon.
+    const hoverPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 14, className: 'fire-tooltip', maxWidth: '260px' })
+    const showTip = (e: maplibregl.MapLayerMouseEvent) => {
+      const feature = e.features?.[0]
+      if (!feature || feature.geometry.type !== 'Point') return
+      const coords = feature.geometry.coordinates.slice(0, 2) as [number, number]
+      hoverPopup.setLngLat(coords).setDOMContent(fireTooltipElement(feature.properties)).addTo(map)
+    }
+    map.on('mouseenter', 'fire-point', (e) => {
+      if (modeRef.current === 'select') map.getCanvas().style.cursor = 'pointer'
+      showTip(e)
+    })
+    map.on('mousemove', 'fire-point', showTip) // follow between overlapping icons
+    map.on('mouseleave', 'fire-point', () => { if (modeRef.current === 'select') map.getCanvas().style.cursor = ''; hoverPopup.remove() })
     map.on('click', (e) => {
       const m = modeRef.current
       if (m === 'place') { onPlaceRef.current(e.lngLat.lat, e.lngLat.lng); return }

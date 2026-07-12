@@ -56,6 +56,11 @@ severity-colored WebGL circle layers with a selected-feature highlight, and an
 incident detail panel with a per-incident, dated updates feed. Data is fetched
 with TanStack Query (`src/data/`).
 
+Hovering a fire icon pops a small quick-reference card with the incident name,
+start date, and containment percentage (built with `textContent`, so an
+externally-sourced fire name can't inject markup, and non-interactive so it
+never blocks map clicks).
+
 The Updates feed builds incident history with no backend required. On every
 fetch the app snapshots each fire and diffs it against the last snapshot stored
 in the browser (`lib/fireHistory.ts` + pure `domain/history.ts`), appending
