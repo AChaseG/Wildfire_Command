@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import {
+  changeToUpdate,
   deriveFireTimeline,
   fireDurationMs,
   fireSources,
@@ -9,9 +10,11 @@ import {
   haversineKm,
   resolveFireStatus,
   type Fire,
+  type FireUpdate,
   type SavedPlace,
 } from '../domain'
 import { useFireUpdates } from '../data/hooks'
+import { getFireHistory } from '../lib/fireHistory'
 import { useUnits } from '../lib/units'
 import { StatusBadge } from './badges'
 
@@ -40,10 +43,11 @@ function Stat({ label, value }: { label: string; value: string }) {
 interface Props {
   fire: Fire
   places: SavedPlace[]
+  historyVersion?: number
   onClose: () => void
 }
 
-export function IncidentDetail({ fire, places, onClose }: Props) {
+export function IncidentDetail({ fire, places, historyVersion = 0, onClose }: Props) {
   const { units } = useUnits()
   const { data: updates, isLoading } = useFireUpdates(fire.id)
   const resolution = fire.status === 'active' ? resolveFireStatus(fire) : null
@@ -52,12 +56,34 @@ export function IncidentDetail({ fire, places, onClose }: Props) {
   const dataSources = sources.filter((s) => s.kind === 'data')
   const referenceSources = sources.filter((s) => s.kind === 'reference')
 
-  // Prefer the backend's ingested change log; when there is none (e.g.
-  // backend-less live mode), derive a timeline from the incident's own dated
-  // fields so the tab still shows real history.
+  // Updates feed, in order of preference:
+  //  1. the backend's ingested change log (richest), if present;
+  //  2. the browser-recorded change history (real deltas this browser has
+  //     witnessed over time) plus the discovery anchor;
+  //  3. a timeline derived from the latest snapshot, when no history exists yet.
   const ingested = updates ?? []
   const derivedTimeline = useMemo(() => deriveFireTimeline(fire, units), [fire, units])
-  const feed = ingested.length > 0 ? ingested : derivedTimeline
+  const observed = useMemo(
+    () => getFireHistory(fire.id).map((c) => changeToUpdate(c, fire.id, units)),
+    // historyVersion changes when App records new observations.
+    [fire.id, units, historyVersion],
+  )
+
+  let feed: FireUpdate[]
+  let historyNote: string | null
+  if (ingested.length > 0) {
+    feed = ingested
+    historyNote = null
+  } else if (observed.length > 0) {
+    const discovery = derivedTimeline.find((u) => u.id === `${fire.id}:discovery`)
+    feed = [...observed, ...(discovery ? [discovery] : [])].sort(
+      (a, b) => Date.parse(b.postedAt) - Date.parse(a.postedAt),
+    )
+    historyNote = 'Change history this browser has recorded as the incident updated — it builds up while the app is open.'
+  } else {
+    feed = derivedTimeline
+    historyNote = 'Latest snapshot. A change history will build here as the incident updates while the app is open.'
+  }
 
   const placeDistances = useMemo(
     () =>
@@ -121,8 +147,8 @@ export function IncidentDetail({ fire, places, onClose }: Props) {
         <h3>Updates</h3>
         {isLoading && <p className="list-empty">Loading…</p>}
         {!isLoading && feed.length === 0 && <p className="list-empty">No updates yet.</p>}
-        {!isLoading && ingested.length === 0 && derivedTimeline.length > 0 && (
-          <p className="updates-note">Timeline derived from the latest WFIGS snapshot. Enable the backend for a full change log.</p>
+        {!isLoading && feed.length > 0 && historyNote && (
+          <p className="updates-note">{historyNote}</p>
         )}
         <ol className="update-feed">
           {feed.map((u) => (

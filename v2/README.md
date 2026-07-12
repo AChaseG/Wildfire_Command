@@ -56,10 +56,20 @@ severity-colored WebGL circle layers with a selected-feature highlight, and an
 incident detail panel with a per-incident, dated updates feed. Data is fetched
 with TanStack Query (`src/data/`).
 
-The Updates feed prefers the backend's ingested change log; with no backend
-(live mode) it falls back to a timeline derived from the incident's own dated
-fields — discovery, current size/containment, and resolution — via the pure
-`domain/timeline.ts`, so the tab shows real history instead of nothing.
+The Updates feed builds incident history with no backend required. On every
+fetch the app snapshots each fire and diffs it against the last snapshot stored
+in the browser (`lib/fireHistory.ts` + pure `domain/history.ts`), appending
+observed deltas — containment climbing, size growing, status/severity changes —
+to a per-fire log in localStorage that accrues over time. Ordering:
+
+1. the backend's ingested change log, when running with Supabase (richest);
+2. otherwise the **browser-recorded** change history plus a discovery anchor;
+3. before any change has been seen, a timeline derived from the latest snapshot
+   (`domain/timeline.ts`).
+
+The client-side history is per-browser and only accrues while the app is open —
+it can't back-fill changes from before you first viewed a fire. For a
+continuous, shared log, run the Supabase backend.
 
 ### Data modes
 

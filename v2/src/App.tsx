@@ -8,6 +8,7 @@ import { useUnits } from './lib/units'
 import { useNotificationSound } from './lib/notificationSound'
 import { useKeyLocations } from './hooks/useKeyLocations'
 import { usePlaceAlerts } from './hooks/usePlaceAlerts'
+import { recordObservations } from './lib/fireHistory'
 import { BASEMAPS, DEFAULT_BASEMAP_ID } from './lib/basemaps'
 import { FireMap, type MapMode } from './map/FireMap'
 import { IncidentList } from './components/IncidentList'
@@ -49,6 +50,15 @@ export default function App() {
   const [showHotspots, setShowHotspots] = useState(true)
   const { data: hotspots = [] } = useHotspots(showHotspots)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+
+  // Record observed changes to each incident on every fetch, building a
+  // browser-local change history (no backend). Bump a tick when something
+  // changed so the open detail panel re-reads the log.
+  const [historyVersion, setHistoryVersion] = useState(0)
+  useEffect(() => {
+    if (fires.length === 0) return
+    if (recordObservations(fires) > 0) setHistoryVersion((v) => v + 1)
+  }, [fires])
   const [leftTab, setLeftTab] = useState<LeftTab>('incidents')
   const [mode, setMode] = useState<MapMode>('select')
   const [basemapId, setBasemapId] = useState(() => {
@@ -138,7 +148,7 @@ export default function App() {
           </div>
         </div>
 
-        {selected && <IncidentDetail fire={selected} places={locations} onClose={() => setSelectedId(null)} />}
+        {selected && <IncidentDetail fire={selected} places={locations} historyVersion={historyVersion} onClose={() => setSelectedId(null)} />}
       </div>
     </div>
   )
