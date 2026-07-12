@@ -1,6 +1,6 @@
 // Static help/marketing content surfaced in Settings.
 
-export const APP_VERSION = '2.0.1'
+export const APP_VERSION = '2.1.0'
 export const REPO_URL = 'https://github.com/AChaseG/Wildfire_Command'
 
 export interface TutorialStep { title: string; body: string }
@@ -17,10 +17,17 @@ export const TUTORIAL: TutorialStep[] = [
 export interface FaqItem { q: string; a: string }
 
 export const FAQ: FaqItem[] = [
-  { q: 'Where does the data come from?', a: 'Active incidents come from the NIFC WFIGS interagency feed, fetched live in your browser. With the optional backend enabled, the app also ingests NASA FIRMS hotspots, Open-Meteo wind, and PurpleAir air quality.' },
+  { q: 'Where does the data come from?', a: 'Active incidents come from the NIFC WFIGS interagency feed, fetched live in your browser. Wind and US air-quality (AQI) are enriched per incident from Open-Meteo’s keyless APIs — also right in the browser, no backend needed. The optional backend adds NASA FIRMS hotspots and a continuous server-side update history.' },
+  { q: 'What decides which incidents the list shows?', a: 'By default the Incidents list shows whatever fires are in the current map view — pan or zoom to change it. Selecting a saved place (“Show fires within…”) instead filters the list to fires inside that place’s alert radius and frames the map to it. Clear the chip to return to the map view.' },
+  { q: 'What do the Alerts show?', a: 'Only the fires that matter to you: those within a saved place’s alert radius, and any of extreme severity (plus hazardous-air warnings for those). With no saved places, it’s just the extreme fires.' },
+  { q: 'Does the Updates tab show history without a backend?', a: 'Yes. As you use the app it records the changes it observes — containment climbing, size growing, status changes — into a per-incident log in your browser that builds up over time, and it derives a timeline from the incident’s own dated fields. The optional backend adds a continuous, shared change log.' },
+  { q: 'How is a fire’s cause classified (arson vs accident)?', a: 'From the official NWCG cause on the incident: arson (“Incendiary”), accidental human causes (debris burning, equipment, campfire, smoking, powerline, railroad, fireworks…), natural (lightning), or undetermined while it’s under investigation. The app classifies the data — it doesn’t infer a cause on its own.' },
+  { q: 'Where does “Nearby news” come from?', a: 'Recent US news matched to the incident by name via GDELT (a free, keyless news index). Headlines open on the publisher’s site. It’s best-effort and name-based, so double-check relevance for generically-named fires.' },
+  { q: 'What are the Sources links on an incident?', a: 'They point to the records behind the data: the incident’s own WFIGS record (deep-linked by IrwinID), Open-Meteo for wind/AQI, plus authoritative references to cross-check it — WildCAD/WildWeb dispatch logs, InciWeb, and a NASA FIRMS map centered on the fire.' },
+  { q: 'Why are fires shown as flames?', a: 'Each incident is a small flame icon colored by severity (green → red), sized to its severity, over a glow that brightens for the selected fire. Hover any flame for a quick card with the name, start date, and containment.' },
   { q: 'Are my saved places private?', a: 'Yes. Saved places, preferences, and settings live only in your browser (localStorage). Nothing is uploaded, and there are no accounts.' },
   { q: 'Why don’t alerts fire when the app is closed?', a: 'Browser notifications only work while a tab is open. Truly external alerts (email/SMS/push when the app is closed) require a backend and a push service.' },
-  { q: 'What are FIRMS hotspots?', a: 'Satellite thermal detections from NASA FIRMS — points where sensors detected heat. They render as a heatmap and are a leading signal, not confirmed incidents.' },
+  { q: 'What are FIRMS hotspots?', a: 'Satellite thermal detections from NASA FIRMS — points where sensors detected heat. They render as a heatmap and are a leading signal, not confirmed incidents. They need the optional backend.' },
   { q: 'How is a fire marked contained or out?', a: 'From the incident’s own data: 100% containment or a containment date → contained; an out/control date → out. Otherwise it stays active.' },
   { q: 'Do the alert radius and distances use my chosen units?', a: 'Yes. Everything follows the mi/km setting in Settings → General.' },
 ]
@@ -30,6 +37,19 @@ export const FAQ: FaqItem[] = [
 export interface ChangelogEntry { version: string; date: string; items: string[] }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '2.1.0',
+    date: '2026-07-12',
+    items: [
+      'Wind and US air quality (AQI) now populate live in the browser via Open-Meteo — no backend required.',
+      'Fires now appear as severity-colored flame icons; hover one for a quick name / start-date / containment card.',
+      'Cause now distinguishes arson from accidental human causes, using the official NWCG cause.',
+      'Updates tab builds real history with no backend — recording observed changes over time plus a snapshot timeline.',
+      'New “Nearby news” for a selected incident (via GDELT), and a “Sources” section linking every data record (WFIGS, Open-Meteo) and references (WildCAD/WildWeb, InciWeb, NASA FIRMS).',
+      'Incident list follows the map view; selecting a saved place filters it to that place’s alert radius.',
+      'Alerts now focus on fires near your saved places or of extreme severity.',
+    ],
+  },
   {
     version: '2.0.1',
     date: '2026-07-12',
