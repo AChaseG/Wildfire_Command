@@ -1,9 +1,13 @@
+import { useMemo } from 'react'
 import {
   fireDurationMs,
   formatArea,
+  formatDistance,
   formatWind,
+  haversineKm,
   resolveFireStatus,
   type Fire,
+  type SavedPlace,
 } from '../domain'
 import { useFireUpdates } from '../data/hooks'
 import { useUnits } from '../lib/units'
@@ -27,13 +31,22 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 interface Props {
   fire: Fire
+  places: SavedPlace[]
   onClose: () => void
 }
 
-export function IncidentDetail({ fire, onClose }: Props) {
+export function IncidentDetail({ fire, places, onClose }: Props) {
   const { units } = useUnits()
   const { data: updates, isLoading } = useFireUpdates(fire.id)
   const resolution = fire.status === 'active' ? resolveFireStatus(fire) : null
+
+  const placeDistances = useMemo(
+    () =>
+      places
+        .map((place) => ({ place, km: haversineKm(fire.location, { lat: place.lat, lng: place.lng }) }))
+        .sort((a, b) => a.km - b.km),
+    [places, fire],
+  )
 
   return (
     <section className="detail">
@@ -66,6 +79,24 @@ export function IncidentDetail({ fire, onClose }: Props) {
       </dl>
 
       {fire.summary && <p className="detail-summary">{fire.summary}</p>}
+
+      {placeDistances.length > 0 && (
+        <div className="detail-section">
+          <h3>Distance from places</h3>
+          <ul className="place-dist">
+            {placeDistances.map(({ place, km }) => (
+              <li key={place.id}>
+                <span className="place-star" style={{ color: place.color }} aria-hidden>★</span>
+                <span className="place-dist-name">{place.name}</span>
+                <span className={`place-dist-val ${km <= place.alertRadiusKm ? 'in' : ''}`}>
+                  {formatDistance(km, units)}
+                  {km <= place.alertRadiusKm && <span className="in-tag">in range</span>}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="updates">
         <h3>Updates</h3>

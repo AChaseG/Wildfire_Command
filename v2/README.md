@@ -90,6 +90,10 @@ Notifications API), de-duped so each fire announces once. Proximity detection is
 a pure, tested domain function (`domain/places.ts`), and everything persists in
 localStorage.
 
+A selected incident's detail panel lists the distance to each saved place
+(nearest first, in the active unit), flagging any the fire is within the alert
+radius of.
+
 Limitation: browser notifications only fire while a tab is open. Truly external
 alerts when the app is closed (email/SMS/push) require a backend + push service —
 that's the Supabase path, where the same `SavedPlace` model can drive a

@@ -187,7 +187,16 @@ body {
 
 .detail-summary { font-size: 13px; line-height: 1.5; color: #c7d0da; border-top: 1px solid var(--line); padding-top: 14px; }
 
-.updates h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 18px 0 10px; }
+.updates h3, .detail-section h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 18px 0 10px; }
+
+.detail-section { border-top: 1px solid var(--line); }
+.place-dist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.place-dist li { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.place-star { flex: none; font-size: 14px; line-height: 1; }
+.place-dist-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.place-dist-val { flex: none; color: var(--muted); font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 6px; }
+.place-dist-val.in { color: #f85149; font-weight: 600; }
+.in-tag { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; border: 1px solid #f8514955; border-radius: 999px; padding: 1px 6px; }
 .update-feed { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
 .update { display: flex; flex-direction: column; gap: 3px; border-left: 2px solid var(--line); padding-left: 11px; }
 .update-kind { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }

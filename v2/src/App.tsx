@@ -104,7 +104,7 @@ export default function App() {
           </div>
         </div>
 
-        {selected && <IncidentDetail fire={selected} onClose={() => setSelectedId(null)} />}
+        {selected && <IncidentDetail fire={selected} places={locations} onClose={() => setSelectedId(null)} />}
       </div>
     </div>
   )
