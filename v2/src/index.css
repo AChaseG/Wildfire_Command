@@ -202,6 +202,11 @@ body {
 .update-kind { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
 .update-title { font-size: 13px; font-weight: 600; }
 .update-body { font-size: 12px; color: var(--muted); line-height: 1.45; }
+.source-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.source-item { display: flex; flex-direction: column; gap: 2px; }
+.source-name { font-size: 13px; font-weight: 600; color: #7aa2ff; text-decoration: none; }
+.source-name:hover { text-decoration: underline; }
+.source-contributes { font-size: 12px; color: var(--muted); line-height: 1.4; }
 
 /* ---- buttons ---- */
 .btn-primary { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }

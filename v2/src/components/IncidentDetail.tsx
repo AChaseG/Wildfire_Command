@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import {
   fireDurationMs,
+  fireSources,
   formatArea,
   formatDistance,
   formatWind,
@@ -39,6 +40,8 @@ export function IncidentDetail({ fire, places, onClose }: Props) {
   const { units } = useUnits()
   const { data: updates, isLoading } = useFireUpdates(fire.id)
   const resolution = fire.status === 'active' ? resolveFireStatus(fire) : null
+
+  const sources = useMemo(() => fireSources(fire), [fire])
 
   const placeDistances = useMemo(
     () =>
@@ -111,6 +114,18 @@ export function IncidentDetail({ fire, places, onClose }: Props) {
             </li>
           ))}
         </ol>
+      </div>
+
+      <div className="detail-section sources-section">
+        <h3>Sources</h3>
+        <ul className="source-list">
+          {sources.map((s) => (
+            <li key={s.name} className="source-item">
+              <a href={s.url} target="_blank" rel="noreferrer" className="source-name">{s.name} ↗</a>
+              <span className="source-contributes">{s.contributes}</span>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   )

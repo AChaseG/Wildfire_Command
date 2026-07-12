@@ -97,7 +97,9 @@ localStorage.
 
 A selected incident's detail panel lists the distance to each saved place
 (nearest first, in the active unit), flagging any the fire is within the alert
-radius of.
+radius of, and a **Sources** section attributing every field shown — NIFC WFIGS
+(linked directly to that incident's record by IrwinID), plus Open-Meteo and
+PurpleAir when wind/AQI enrichment is present (`domain/sources.ts`).
 
 Limitation: browser notifications only fire while a tab is open. Truly external
 alerts when the app is closed (email/SMS/push) require a backend + push service —
