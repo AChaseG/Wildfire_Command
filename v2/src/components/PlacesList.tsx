@@ -8,13 +8,15 @@ interface Props {
   fires: Fire[]
   units: UnitSystem
   placing: boolean
+  selectedId: string | null
   onTogglePlacing: () => void
   onAdd: (lat: number, lng: number, name?: string) => void
   onUpdate: (id: string, patch: Partial<SavedPlace>) => void
   onRemove: (id: string) => void
+  onFocus: (place: SavedPlace) => void
 }
 
-export function PlacesList({ locations, fires, units, placing, onTogglePlacing, onAdd, onUpdate, onRemove }: Props) {
+export function PlacesList({ locations, fires, units, placing, selectedId, onTogglePlacing, onAdd, onUpdate, onRemove, onFocus }: Props) {
   const [name, setName] = useState('')
   const [address, setAddress] = useState('')
   const [busy, setBusy] = useState(false)
@@ -80,7 +82,7 @@ export function PlacesList({ locations, fires, units, placing, onTogglePlacing, 
           const inRange = firesWithinRadius(fires, place).length
           const radiusDisplay = units === 'metric' ? Math.round(place.alertRadiusKm) : Math.round(kmToMiles(place.alertRadiusKm))
           return (
-            <div key={place.id} className="place-card">
+            <div key={place.id} className={`place-card ${place.id === selectedId ? 'selected' : ''}`}>
               <div className="place-card-head">
                 <input
                   type="color" className="place-color" value={place.color}
@@ -117,6 +119,10 @@ export function PlacesList({ locations, fires, units, placing, onTogglePlacing, 
                   <span className={`in-range ${inRange > 0 ? 'hot' : ''}`}>{inRange} in range</span>
                 )}
               </div>
+
+              <button className="place-focus" type="button" onClick={() => onFocus(place)}>
+                {place.id === selectedId ? 'Showing' : 'Show'} fires within {radiusDisplay}{unitLabel} →
+              </button>
             </div>
           )
         })}

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useFires, useHotspots } from './data/hooks'
 import { useRealtimeSync } from './data/realtime'
 import { dataMode } from './data/fires'
-import { deriveAlerts, itemsInViewport, type Bounds } from './domain'
+import { derivePlaceAlerts, firesWithinRadius, itemsInViewport, kmToMiles, type Bounds, type SavedPlace } from './domain'
 import { useTheme } from './lib/theme'
 import { useUnits } from './lib/units'
 import { useNotificationSound } from './lib/notificationSound'
@@ -76,7 +76,28 @@ export default function App() {
     [fires, viewBounds],
   )
 
-  const alerts = useMemo(() => deriveAlerts(fires), [fires])
+  // Selecting a saved place filters the list to fires within that place's alert
+  // radius (and frames the map to it) instead of the viewport.
+  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null)
+  const focusedPlace = useMemo(
+    () => locations.find((p) => p.id === selectedPlaceId) ?? null,
+    [locations, selectedPlaceId],
+  )
+  const incidentsForList = useMemo(
+    () => (focusedPlace ? firesWithinRadius(fires, focusedPlace).map((x) => x.fire) : visibleFires),
+    [focusedPlace, fires, visibleFires],
+  )
+  const mapFocus = useMemo(
+    () => (focusedPlace ? { lat: focusedPlace.lat, lng: focusedPlace.lng, radiusKm: focusedPlace.alertRadiusKm } : null),
+    [focusedPlace],
+  )
+  const radiusLabel = focusedPlace
+    ? units === 'metric' ? `${Math.round(focusedPlace.alertRadiusKm)} km` : `${Math.round(kmToMiles(focusedPlace.alertRadiusKm))} mi`
+    : ''
+  const focusPlace = (place: SavedPlace) => { setSelectedPlaceId(place.id); setLeftTab('incidents') }
+
+  // Alerts panel: only fires near a saved place or of extreme severity.
+  const alerts = useMemo(() => derivePlaceAlerts(fires, locations, units), [fires, locations, units])
   const selected = fires.find((f) => f.id === selectedId) ?? null
 
   // OS notifications (+ chime) when a fire enters an alert-enabled place's radius.
@@ -121,17 +142,23 @@ export default function App() {
       <div className="console">
         <aside className="sidebar">
           <div className="tabs">
-            <button className={`tab ${leftTab === 'incidents' ? 'active' : ''}`} onClick={() => setLeftTab('incidents')} type="button">Incidents <span className="tab-count">{visibleFires.length}</span></button>
+            <button className={`tab ${leftTab === 'incidents' ? 'active' : ''}`} onClick={() => setLeftTab('incidents')} type="button">Incidents <span className="tab-count">{incidentsForList.length}</span></button>
             <button className={`tab ${leftTab === 'alerts' ? 'active' : ''}`} onClick={() => setLeftTab('alerts')} type="button">Alerts <span className="tab-count alert">{alerts.length}</span></button>
             <button className={`tab ${leftTab === 'places' ? 'active' : ''}`} onClick={() => setLeftTab('places')} type="button">Places <span className="tab-count">{locations.length}</span></button>
           </div>
-          {leftTab === 'incidents' && <IncidentList fires={visibleFires} selectedId={selectedId} onSelect={setSelectedId} loading={isLoading} total={fires.length} />}
+          {leftTab === 'incidents' && (
+            <IncidentList
+              fires={incidentsForList} selectedId={selectedId} onSelect={setSelectedId} loading={isLoading}
+              total={focusedPlace ? undefined : fires.length}
+              focus={focusedPlace ? { label: `Within ${radiusLabel} of ${focusedPlace.name}`, onClear: () => setSelectedPlaceId(null) } : undefined}
+            />
+          )}
           {leftTab === 'alerts' && <AlertsList alerts={alerts} onSelect={(id) => { setSelectedId(id); setLeftTab('incidents') }} />}
           {leftTab === 'places' && (
             <PlacesList
-              locations={locations} fires={fires} units={units}
+              locations={locations} fires={fires} units={units} selectedId={selectedPlaceId}
               placing={mode === 'place'} onTogglePlacing={togglePlacing}
-              onAdd={addLocation} onUpdate={updateLocation} onRemove={removeLocation}
+              onAdd={addLocation} onUpdate={updateLocation} onRemove={removeLocation} onFocus={focusPlace}
             />
           )}
         </aside>
@@ -141,7 +168,7 @@ export default function App() {
             fires={fires} hotspots={hotspots} showHotspots={showHotspots}
             selectedId={selectedId} onSelect={setSelectedId}
             mode={mode} units={units} keyLocations={locations} onPlaceLocation={handlePlace}
-            onBoundsChange={setViewBounds}
+            onBoundsChange={setViewBounds} focusPlace={mapFocus}
             basemapId={basemapId}
           />
           <div className="map-tools">

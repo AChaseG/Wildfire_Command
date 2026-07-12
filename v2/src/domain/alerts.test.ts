@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { deriveAlerts } from './alerts'
+import { deriveAlerts, derivePlaceAlerts } from './alerts'
 import type { Fire } from './fire'
+import type { SavedPlace } from './places'
 
 const now = new Date('2026-07-08T12:00:00Z')
 
@@ -46,5 +47,36 @@ describe('deriveAlerts', () => {
     )
     const levels = alerts.map((a) => a.level)
     expect(levels.indexOf('critical')).toBeLessThan(levels.indexOf('warning'))
+  })
+})
+
+const place = (o: Partial<SavedPlace> = {}): SavedPlace => ({
+  id: 'p', name: 'Home', lat: 0, lng: 0, color: '#fff', alertEnabled: true, alertRadiusKm: 40, ...o,
+})
+
+describe('derivePlaceAlerts', () => {
+  it('with no places, surfaces only extreme fires', () => {
+    const fires = [
+      fire({ id: 'ex', severity: 'extreme', containmentPct: 80, location: { lat: 50, lng: 50, description: null } }),
+      fire({ id: 'mod', severity: 'moderate', location: { lat: 50, lng: 50, description: null } }),
+    ]
+    const ids = derivePlaceAlerts(fires, []).map((a) => a.fireId)
+    expect(ids).toContain('ex')
+    expect(ids).not.toContain('mod')
+  })
+
+  it('surfaces a non-extreme fire only when it is within a place radius', () => {
+    const home = place({ lat: 34.05, lng: -118.24, alertRadiusKm: 40 })
+    const nearFire = fire({ id: 'near', severity: 'moderate', location: { lat: 34.1, lng: -118.2, description: null } })
+    const farFire = fire({ id: 'far', severity: 'moderate', location: { lat: 40, lng: -100, description: null } })
+    const alerts = derivePlaceAlerts([nearFire, farFire], [home])
+    expect(alerts.some((a) => a.fireId === 'near' && a.id === 'near:prox')).toBe(true)
+    expect(alerts.some((a) => a.fireId === 'far')).toBe(false)
+  })
+
+  it('excludes fires that are out even if near a place', () => {
+    const home = place({ lat: 0, lng: 0 })
+    const outFire = fire({ id: 'o', status: 'out', location: { lat: 0, lng: 0, description: null } })
+    expect(derivePlaceAlerts([outFire], [home])).toHaveLength(0)
   })
 })

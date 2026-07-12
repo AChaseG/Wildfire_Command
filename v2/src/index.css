@@ -82,6 +82,13 @@ body {
 .list-scroll { overflow-y: auto; flex: 1; }
 .list-empty { color: var(--muted); font-size: 13px; padding: 16px; }
 .list-note { color: var(--muted); font-size: 11px; padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+.focus-note { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.focus-note span { color: var(--text); font-weight: 600; }
+.focus-clear { border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 13px; line-height: 1; padding: 2px 4px; border-radius: 4px; }
+.focus-clear:hover { color: var(--text); background: var(--line); }
+.place-focus { margin-top: 10px; width: 100%; text-align: left; border: 1px solid var(--line); background: transparent; color: #7aa2ff; font-size: 12px; font-weight: 600; padding: 7px 10px; border-radius: 8px; cursor: pointer; }
+.place-focus:hover { background: var(--panel-2); }
+.place-card.selected { border-color: #7aa2ff; box-shadow: 0 0 0 1px #7aa2ff55; }
 
 .row {
   width: 100%; display: flex; align-items: center; gap: 10px; text-align: left;

@@ -167,10 +167,11 @@ interface Props {
   keyLocations: SavedPlace[]
   onPlaceLocation: (lat: number, lng: number) => void
   onBoundsChange?: (bounds: Bounds) => void
+  focusPlace?: { lat: number; lng: number; radiusKm: number } | null
   basemapId: string
 }
 
-export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect, mode, units, keyLocations, onPlaceLocation, onBoundsChange, basemapId }: Props) {
+export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect, mode, units, keyLocations, onPlaceLocation, onBoundsChange, focusPlace, basemapId }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const placeMarkersRef = useRef<maplibregl.Marker[]>([])
@@ -345,6 +346,20 @@ export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect, m
     if (!map || !loadedRef.current) return
     syncSelection(map, firesRef.current, selectedId)
   }, [selectedId])
+
+  // Frame a selected saved place's alert radius so the map shows the same area
+  // the incident list is filtered to.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !focusPlace) return
+    const { lat, lng, radiusKm } = focusPlace
+    const latDelta = radiusKm / 111
+    const lngDelta = radiusKm / (111 * Math.max(0.1, Math.cos((lat * Math.PI) / 180)))
+    map.fitBounds(
+      [[lng - lngDelta, lat - latDelta], [lng + lngDelta, lat + latDelta]],
+      { padding: 60, duration: 700, maxZoom: 11 },
+    )
+  }, [focusPlace])
 
   // Switch basemaps when the picker changes. The map is already built with the
   // initial basemap, so skip the first run. setStyle clears our sources;

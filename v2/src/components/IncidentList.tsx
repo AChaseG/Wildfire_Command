@@ -26,9 +26,12 @@ interface Props {
   // Total loaded incidents (fires is already limited to the map viewport), used
   // to show how many are off-screen.
   total?: number
+  // When set, the list is filtered to a saved place's alert radius (not the
+  // viewport); shows a clearable chip instead of the viewport note.
+  focus?: { label: string; onClear: () => void }
 }
 
-export function IncidentList({ fires, selectedId, onSelect, loading, total }: Props) {
+export function IncidentList({ fires, selectedId, onSelect, loading, total, focus }: Props) {
   const { units } = useUnits()
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<StatusFilter>('all')
@@ -66,13 +69,22 @@ export function IncidentList({ fires, selectedId, onSelect, loading, total }: Pr
 
       <div className="list-scroll">
         {loading && <p className="list-empty">Loading incidents…</p>}
-        {!loading && typeof total === 'number' && total > fires.length && (
+        {!loading && focus && (
+          <div className="list-note focus-note">
+            <span>{focus.label}</span>
+            <button className="focus-clear" onClick={focus.onClear} type="button" aria-label="Clear place filter">✕</button>
+          </div>
+        )}
+        {!loading && !focus && typeof total === 'number' && total > fires.length && (
           <p className="list-note">Showing {visible.length} in the current map view · {total} total. Zoom out to see more.</p>
         )}
-        {!loading && visible.length === 0 && fires.length === 0 && typeof total === 'number' && total > 0 && (
+        {!loading && visible.length === 0 && focus && (
+          <p className="list-empty">No fires within this range.</p>
+        )}
+        {!loading && visible.length === 0 && !focus && fires.length === 0 && typeof total === 'number' && total > 0 && (
           <p className="list-empty">No incidents in the current map view. Zoom out or pan the map.</p>
         )}
-        {!loading && visible.length === 0 && !(fires.length === 0 && typeof total === 'number' && total > 0) && (
+        {!loading && visible.length === 0 && !focus && !(fires.length === 0 && typeof total === 'number' && total > 0) && (
           <p className="list-empty">No incidents match.</p>
         )}
         {visible.map((fire) => (

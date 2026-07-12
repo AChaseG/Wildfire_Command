@@ -63,6 +63,14 @@ emits its bounds on every `moveend`; the pure `itemsInViewport` in `domain/geo`
 does the filtering, antimeridian-safe). A note shows how many incidents are
 off-screen.
 
+Selecting a **saved place** ("Show fires within…") overrides the viewport
+filter: the list shows only fires inside that place's alert radius
+(`firesWithinRadius`), the map frames the radius, and a clearable chip marks the
+active filter. The **Alerts** panel is likewise scoped — `derivePlaceAlerts`
+surfaces only fires within a saved place's radius (a proximity alert) or of
+extreme severity (plus hazardous-air alerts for that eligible set); with no
+saved places it's just the extreme fires.
+
 Hovering a fire icon pops a small quick-reference card with the incident name,
 start date, and containment percentage (built with `textContent`, so an
 externally-sourced fire name can't inject markup, and non-interactive so it
