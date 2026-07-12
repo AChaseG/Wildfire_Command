@@ -86,6 +86,50 @@ function measureToGeoJSON(points: [number, number][]): GeoData {
 
 const RADIUS: maplibregl.ExpressionSpecification = ['match', ['get', 'severity'], 'extreme', 11, 'high', 8, 'moderate', 6, 4]
 
+// Fire icon: a small flame drawn per severity color, so the color scheme is
+// preserved. A flame silhouette in a 24×24 box (SVG path), rendered to a canvas
+// image per severity and added to the map as `flame-<severity>`.
+const SEVERITIES = ['low', 'moderate', 'high', 'extreme'] as const
+const FLAME_PATH = 'M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73S7.5 7.53 7.5 5.47l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z'
+const FLAME_SIZE = 30 // logical px at icon-size 1
+const FLAME_RATIO = 2 // device pixels per logical px, for crispness
+
+// Icon size per severity (bigger fires burn larger).
+const FLAME_ICON_SIZE: maplibregl.ExpressionSpecification =
+  ['match', ['get', 'severity'], 'extreme', 1, 'high', 0.82, 'moderate', 0.68, 0.55]
+const FLAME_ICON: maplibregl.ExpressionSpecification =
+  ['match', ['get', 'severity'], 'extreme', 'flame-extreme', 'high', 'flame-high', 'moderate', 'flame-moderate', 'flame-low']
+
+function flameImage(hex: string): ImageData | null {
+  if (typeof document === 'undefined') return null
+  const px = FLAME_SIZE * FLAME_RATIO
+  const canvas = document.createElement('canvas')
+  canvas.width = px
+  canvas.height = px
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return null
+  ctx.scale(px / 24, px / 24) // map the 24-unit path onto the full canvas
+  const path = new Path2D(FLAME_PATH)
+  ctx.fillStyle = hex
+  ctx.fill(path)
+  ctx.lineJoin = 'round'
+  ctx.lineWidth = 1.1
+  ctx.strokeStyle = 'rgba(11,14,20,0.85)' // dark outline for contrast on any basemap
+  ctx.stroke(path)
+  return ctx.getImageData(0, 0, px, px)
+}
+
+// Register a flame image per severity color. Idempotent (setStyle clears images,
+// so this re-runs on each style load).
+function ensureFlameImages(map: maplibregl.Map): void {
+  for (const sev of SEVERITIES) {
+    const id = `flame-${sev}`
+    if (map.hasImage(id)) continue
+    const img = flameImage(SEVERITY_META[sev].color)
+    if (img) map.addImage(id, img, { pixelRatio: FLAME_RATIO })
+  }
+}
+
 function normalizeLng(lng: number): number {
   return ((((lng + 180) % 360) + 360) % 360) - 180
 }
@@ -176,11 +220,29 @@ export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect, m
         paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 2.5, 8, 5], 'circle-color': '#ff8c1a', 'circle-opacity': 0.65, 'circle-blur': 0.3 },
       })
 
+      ensureFlameImages(map)
       map.addSource(SOURCE_ID, { type: 'geojson', data: firesToGeoJSON(firesRef.current), promoteId: 'id' })
-      map.addLayer({ id: 'fire-glow', type: 'circle', source: SOURCE_ID, paint: { 'circle-radius': ['*', RADIUS, 2.4], 'circle-color': ['get', 'color'], 'circle-blur': 1, 'circle-opacity': 0.35 } })
+      // Colored glow behind each flame; brightens and grows for the selected fire.
+      const selected: maplibregl.ExpressionSpecification = ['boolean', ['feature-state', 'selected'], false]
       map.addLayer({
-        id: 'fire-point', type: 'circle', source: SOURCE_ID,
-        paint: { 'circle-radius': RADIUS, 'circle-color': ['get', 'color'], 'circle-stroke-color': '#ffffff', 'circle-stroke-width': ['case', ['boolean', ['feature-state', 'selected'], false], 3, 1] },
+        id: 'fire-glow', type: 'circle', source: SOURCE_ID,
+        paint: {
+          'circle-radius': ['*', RADIUS, ['case', selected, 3.2, 2.2]],
+          'circle-color': ['get', 'color'],
+          'circle-blur': 1,
+          'circle-opacity': ['case', selected, 0.6, 0.32],
+        },
+      })
+      // The flame icon, tinted per severity via a per-color image, base at the point.
+      map.addLayer({
+        id: 'fire-point', type: 'symbol', source: SOURCE_ID,
+        layout: {
+          'icon-image': FLAME_ICON,
+          'icon-size': FLAME_ICON_SIZE,
+          'icon-anchor': 'center',
+          'icon-allow-overlap': true,
+          'icon-ignore-placement': true,
+        },
       })
 
       map.addSource(MEASURE_ID, { type: 'geojson', data: measureToGeoJSON(measurePointsRef.current) })

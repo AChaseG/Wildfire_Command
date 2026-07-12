@@ -51,8 +51,9 @@ default, so you'll see real WFIGS incidents on the CARTO basemap.
 ## UI
 
 A three-pane console (`src/App.tsx`): an incident list with search + status
-filters, a **MapLibre GL** map (`src/map/FireMap.tsx`) rendering fires as
-severity-colored WebGL circle layers with a selected-feature highlight, and an
+filters, a **MapLibre GL** map (`src/map/FireMap.tsx`) rendering each fire as a
+small **flame icon** tinted by severity (one canvas-drawn image per severity
+color) over a colored glow that brightens for the selected fire, and an
 incident detail panel with a per-incident, dated updates feed. Data is fetched
 with TanStack Query (`src/data/`).
 
