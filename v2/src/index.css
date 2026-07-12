@@ -199,7 +199,10 @@ body {
 .in-tag { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; border: 1px solid #f8514955; border-radius: 999px; padding: 1px 6px; }
 .update-feed { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
 .update { display: flex; flex-direction: column; gap: 3px; border-left: 2px solid var(--line); padding-left: 11px; }
+.update-meta { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .update-kind { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.update-date { font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.updates-note { font-size: 12px; color: var(--muted); line-height: 1.4; margin: 0 0 12px; font-style: italic; }
 .update-title { font-size: 13px; font-weight: 600; }
 .update-body { font-size: 12px; color: var(--muted); line-height: 1.45; }
 .source-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }

@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import {
+  deriveFireTimeline,
   fireDurationMs,
   fireSources,
   formatArea,
@@ -19,6 +20,12 @@ function durationLabel(fire: Fire): string {
   const hours = Math.floor(ms / 3_600_000)
   const days = Math.floor(hours / 24)
   return days > 0 ? `${days}d ${hours % 24}h` : `${hours}h`
+}
+
+function updateDate(iso: string): string {
+  const t = Date.parse(iso)
+  if (Number.isNaN(t)) return ''
+  return new Date(t).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
@@ -44,6 +51,13 @@ export function IncidentDetail({ fire, places, onClose }: Props) {
   const sources = useMemo(() => fireSources(fire), [fire])
   const dataSources = sources.filter((s) => s.kind === 'data')
   const referenceSources = sources.filter((s) => s.kind === 'reference')
+
+  // Prefer the backend's ingested change log; when there is none (e.g.
+  // backend-less live mode), derive a timeline from the incident's own dated
+  // fields so the tab still shows real history.
+  const ingested = updates ?? []
+  const derivedTimeline = useMemo(() => deriveFireTimeline(fire, units), [fire, units])
+  const feed = ingested.length > 0 ? ingested : derivedTimeline
 
   const placeDistances = useMemo(
     () =>
@@ -106,11 +120,17 @@ export function IncidentDetail({ fire, places, onClose }: Props) {
       <div className="updates">
         <h3>Updates</h3>
         {isLoading && <p className="list-empty">Loading…</p>}
-        {!isLoading && (updates ?? []).length === 0 && <p className="list-empty">No updates yet.</p>}
+        {!isLoading && feed.length === 0 && <p className="list-empty">No updates yet.</p>}
+        {!isLoading && ingested.length === 0 && derivedTimeline.length > 0 && (
+          <p className="updates-note">Timeline derived from the latest WFIGS snapshot. Enable the backend for a full change log.</p>
+        )}
         <ol className="update-feed">
-          {(updates ?? []).map((u) => (
+          {feed.map((u) => (
             <li key={u.id} className="update">
-              <span className={`update-kind kind-${u.kind}`}>{u.kind.replace('_', ' ')}</span>
+              <span className="update-meta">
+                <span className={`update-kind kind-${u.kind}`}>{u.kind.replace('_', ' ')}</span>
+                {updateDate(u.postedAt) && <span className="update-date">{updateDate(u.postedAt)}</span>}
+              </span>
               <span className="update-title">{u.title}</span>
               {u.body && <span className="update-body">{u.body}</span>}
             </li>

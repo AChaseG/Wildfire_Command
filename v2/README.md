@@ -53,8 +53,13 @@ default, so you'll see real WFIGS incidents on the CARTO basemap.
 A three-pane console (`src/App.tsx`): an incident list with search + status
 filters, a **MapLibre GL** map (`src/map/FireMap.tsx`) rendering fires as
 severity-colored WebGL circle layers with a selected-feature highlight, and an
-incident detail panel with the per-incident updates feed. Data is fetched with
-TanStack Query (`src/data/`).
+incident detail panel with a per-incident, dated updates feed. Data is fetched
+with TanStack Query (`src/data/`).
+
+The Updates feed prefers the backend's ingested change log; with no backend
+(live mode) it falls back to a timeline derived from the incident's own dated
+fields — discovery, current size/containment, and resolution — via the pure
+`domain/timeline.ts`, so the tab shows real history instead of nothing.
 
 ### Data modes
 
