@@ -14,12 +14,17 @@ const US_CENTER: [number, number] = [-108, 41]
 
 type GeoData = Parameters<maplibregl.GeoJSONSource['setData']>[0]
 
+// A real keyless dark basemap by default (no API key/signup); override with
+// VITE_MAP_STYLE. If the remote style can't load, we fall back to the inline
+// style below so the map always renders something.
+const DEFAULT_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
+const STYLE: string = import.meta.env.VITE_MAP_STYLE ?? DEFAULT_STYLE
 const INLINE_STYLE: maplibregl.StyleSpecification = {
   version: 8,
   sources: {},
   layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#0d1117' } }],
 }
-const STYLE: maplibregl.StyleSpecification | string = import.meta.env.VITE_MAP_STYLE ?? INLINE_STYLE
+const STYLE_FALLBACK_MS = 6000
 
 function firesToGeoJSON(fires: Fire[]): GeoData {
   return {
@@ -39,13 +44,6 @@ function pointsToGeoJSON(points: [number, number][]): GeoData {
 function measureToGeoJSON(points: [number, number][]): GeoData {
   const features: unknown[] = points.map((c) => ({ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: c } }))
   if (points.length >= 2) features.push({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: points } })
-  return { type: 'FeatureCollection', features } as unknown as GeoData
-}
-
-function graticule(): GeoData {
-  const features = []
-  for (let lng = -130; lng <= -60; lng += 10) features.push({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[lng, 15], [lng, 60]] } })
-  for (let lat = 20; lat <= 55; lat += 5) features.push({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[-130, lat], [-60, lat]] } })
   return { type: 'FeatureCollection', features } as unknown as GeoData
 }
 
@@ -88,15 +86,19 @@ export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect, m
 
   useEffect(() => {
     if (mapRef.current || !containerRef.current) return
-    const map = new maplibregl.Map({ container: containerRef.current, style: STYLE, center: US_CENTER, zoom: 3.7, attributionControl: { compact: true } })
+    const map = new maplibregl.Map({
+      container: containerRef.current, style: STYLE, center: US_CENTER, zoom: 3.7, attributionControl: { compact: true },
+    })
     mapRef.current = map
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
 
-    map.on('load', () => {
-      map.addSource('graticule', { type: 'geojson', data: graticule() })
-      map.addLayer({ id: 'graticule', type: 'line', source: 'graticule', paint: { 'line-color': '#1b2431', 'line-width': 1 } })
+    // Adds our data sources + layers. Idempotent, and re-run after a style
+    // fallback (setStyle clears sources), so it wires up regardless of which
+    // basemap actually loaded.
+    const addLayers = () => {
+      if (map.getSource(SOURCE_ID)) return
 
-      map.addSource(HOTSPOT_ID, { type: 'geojson', data: pointsToGeoJSON([]) })
+      map.addSource(HOTSPOT_ID, { type: 'geojson', data: pointsToGeoJSON(hotspotsRef.current.map((h) => [h.lng, h.lat])) })
       map.addLayer({
         id: 'hotspot-heat', type: 'heatmap', source: HOTSPOT_ID,
         layout: { visibility: showHotspotsRef.current ? 'visible' : 'none' },
@@ -121,34 +123,40 @@ export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect, m
         paint: { 'circle-radius': RADIUS, 'circle-color': ['get', 'color'], 'circle-stroke-color': '#ffffff', 'circle-stroke-width': ['case', ['boolean', ['feature-state', 'selected'], false], 3, 1] },
       })
 
-      map.addSource(PLACES_ID, { type: 'geojson', data: pointsToGeoJSON([]) })
+      map.addSource(PLACES_ID, { type: 'geojson', data: pointsToGeoJSON(keyLocationsRef.current.map((l) => [l.lng, l.lat])) })
       map.addLayer({ id: 'place-point', type: 'circle', source: PLACES_ID, paint: { 'circle-radius': 6, 'circle-color': '#5ad1c9', 'circle-stroke-color': '#0b0e14', 'circle-stroke-width': 2 } })
 
       map.addSource(MEASURE_ID, { type: 'geojson', data: measureToGeoJSON([]) })
       map.addLayer({ id: 'measure-line', type: 'line', source: MEASURE_ID, filter: ['==', '$type', 'LineString'], paint: { 'line-color': '#7aa2ff', 'line-width': 2, 'line-dasharray': [2, 1.5] } })
       map.addLayer({ id: 'measure-point', type: 'circle', source: MEASURE_ID, filter: ['==', '$type', 'Point'], paint: { 'circle-radius': 4, 'circle-color': '#7aa2ff', 'circle-stroke-color': '#0b0e14', 'circle-stroke-width': 1.5 } })
 
-      map.on('click', 'fire-point', (e) => {
-        if (modeRef.current !== 'select') return
-        const id = e.features?.[0]?.properties?.id
-        if (typeof id === 'string') onSelectRef.current(id)
-      })
-      map.on('mouseenter', 'fire-point', () => { if (modeRef.current === 'select') map.getCanvas().style.cursor = 'pointer' })
-      map.on('mouseleave', 'fire-point', () => { if (modeRef.current === 'select') map.getCanvas().style.cursor = '' })
-
-      map.on('click', (e) => {
-        const m = modeRef.current
-        if (m === 'place') { onPlaceRef.current(e.lngLat.lat, e.lngLat.lng); return }
-        if (m === 'measure') setMeasurePoints((pts) => [...pts, [e.lngLat.lng, e.lngLat.lat]])
-      })
-
       loadedRef.current = true
-      ;(map.getSource(HOTSPOT_ID) as maplibregl.GeoJSONSource).setData(pointsToGeoJSON(hotspotsRef.current.map((h) => [h.lng, h.lat])))
-      ;(map.getSource(PLACES_ID) as maplibregl.GeoJSONSource).setData(pointsToGeoJSON(keyLocationsRef.current.map((l) => [l.lng, l.lat])))
       syncSelection(map, firesRef.current, selectedIdRef.current)
+    }
+
+    // Bind interactions once (they live on the map, not the style).
+    map.on('click', 'fire-point', (e) => {
+      if (modeRef.current !== 'select') return
+      const id = e.features?.[0]?.properties?.id
+      if (typeof id === 'string') onSelectRef.current(id)
+    })
+    map.on('mouseenter', 'fire-point', () => { if (modeRef.current === 'select') map.getCanvas().style.cursor = 'pointer' })
+    map.on('mouseleave', 'fire-point', () => { if (modeRef.current === 'select') map.getCanvas().style.cursor = '' })
+    map.on('click', (e) => {
+      const m = modeRef.current
+      if (m === 'place') { onPlaceRef.current(e.lngLat.lat, e.lngLat.lng); return }
+      if (m === 'measure') setMeasurePoints((pts) => [...pts, [e.lngLat.lng, e.lngLat.lat]])
     })
 
-    return () => { map.remove(); mapRef.current = null; loadedRef.current = false }
+    // If the remote basemap doesn't load in time, fall back to the inline style.
+    let fellBack = false
+    const fallbackTimer = setTimeout(() => {
+      if (!fellBack && !map.isStyleLoaded()) { fellBack = true; map.setStyle(INLINE_STYLE) }
+    }, STYLE_FALLBACK_MS)
+
+    map.on('style.load', () => { clearTimeout(fallbackTimer); addLayers() })
+
+    return () => { clearTimeout(fallbackTimer); map.remove(); mapRef.current = null; loadedRef.current = false }
   }, [])
 
   useEffect(() => {
@@ -184,9 +192,9 @@ export function FireMap({ fires, hotspots, showHotspots, selectedId, onSelect, m
 
   useEffect(() => {
     const map = mapRef.current
-    if (!map || !loadedRef.current) return
+    if (!map) return
     if (mode !== 'measure' && measurePoints.length > 0) setMeasurePoints([])
-    map.getCanvas().style.cursor = mode === 'select' ? '' : 'crosshair'
+    if (loadedRef.current) map.getCanvas().style.cursor = mode === 'select' ? '' : 'crosshair'
   }, [mode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {

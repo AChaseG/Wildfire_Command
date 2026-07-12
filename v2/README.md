@@ -61,9 +61,9 @@ The app runs in one of three modes (`src/data/fires.ts`):
   ingested history, FIRMS hotspots, AQI enrichment, and realtime.
 - **demo** (`VITE_DATA_MODE=demo`): bundled fixtures, for offline development.
 
-The map defaults to a self-contained inline style; set `VITE_MAP_STYLE` to a
-keyless vector style (e.g. OpenFreeMap or MapTiler) for a full basemap in
-production.
+The map uses a keyless dark basemap (CARTO dark-matter) by default and falls
+back to a self-contained inline style if that can't load. Override the basemap
+with `VITE_MAP_STYLE` (any MapLibre style URL, e.g. OpenFreeMap or MapTiler).
 
 Polish (slice 5): light/dark theme and imperial/metric units (context-based,
 persisted to localStorage, defaulting to the OS preference); locally-saved key
