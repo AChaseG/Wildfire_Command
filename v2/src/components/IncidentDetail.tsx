@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
 import {
+  causeCategoryLabel,
   changeToUpdate,
+  classifyCause,
   deriveFireTimeline,
   fireDurationMs,
   fireSources,
@@ -32,12 +34,26 @@ function updateDate(iso: string): string {
   return new Date(t).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="stat">
       <dt>{label}</dt>
       <dd>{value}</dd>
     </div>
+  )
+}
+
+function CauseValue({ cause }: { cause: string | null }) {
+  const category = classifyCause(cause)
+  // Show the raw specific cause plus a category badge; drop the raw text when
+  // it's the bare "Human"/"Unknown" that the badge already conveys.
+  const raw = cause?.trim()
+  const redundant = !raw || /^(human|unknown|undetermined)$/i.test(raw)
+  return (
+    <span className="cause-value">
+      {!redundant && <span className="cause-text">{raw}</span>}
+      <span className={`cause-badge cause-${category}`}>{causeCategoryLabel(category)}</span>
+    </span>
   )
 }
 
@@ -119,7 +135,7 @@ export function IncidentDetail({ fire, places, historyVersion = 0, onClose }: Pr
       <dl className="detail-stats">
         <Stat label="Size" value={formatArea(fire.acres, units)} />
         <Stat label="Severity" value={fire.severity} />
-        <Stat label="Cause" value={fire.cause ?? 'Unknown'} />
+        <Stat label="Cause" value={<CauseValue cause={fire.cause} />} />
         <Stat label="Wind" value={formatWind(fire.weather.windSpeedMph, fire.weather.windDirectionDeg, units)} />
         <Stat label="Air quality" value={fire.weather.aqi == null ? '—' : String(fire.weather.aqi)} />
         <Stat label="Duration" value={durationLabel(fire)} />

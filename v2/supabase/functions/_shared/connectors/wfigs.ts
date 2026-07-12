@@ -11,7 +11,8 @@ const OUT_FIELDS = [
   'IrwinID', 'IncidentName', 'IncidentTypeCategory',
   'FireDiscoveryDateTime', 'ContainmentDateTime', 'FireOutDateTime', 'ControlDateTime',
   'PercentContained', 'IncidentSize', 'DiscoveryAcres',
-  'POOState', 'POOCounty', 'IncidentShortDescription', 'FireCause',
+  'POOState', 'POOCounty', 'IncidentShortDescription',
+  'FireCause', 'FireCauseGeneral', 'FireCauseSpecific',
 ]
 
 export interface WfigsFeature {
@@ -41,7 +42,10 @@ export function parseWfigs(features: readonly WfigsFeature[], now: Date = new Da
     const state = String(pick(attr, ['POOState']) ?? '').replace(/^US-/, '')
     const county = pick(attr, ['POOCounty'])
     const locParts = [county ? `${county} County` : null, state || null].filter(Boolean)
-    const cause = pick(attr, ['FireCause'])
+    // Prefer the NWCG specific cause (e.g. "Arson/Incendiary", "Equipment and
+    // Vehicle Use") so the app can tell arson from accidental human causes;
+    // fall back to the general cause, then the legacy field.
+    const cause = pick(attr, ['FireCauseSpecific', 'FireCauseGeneral', 'FireCause'])
     const shortDesc = pick(attr, ['IncidentShortDescription'])
 
     const outTime = pick(attr, ['FireOutDateTime', 'ControlDateTime'])

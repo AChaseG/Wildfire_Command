@@ -123,6 +123,12 @@ Notifications API), de-duped so each fire announces once. Proximity detection is
 a pure, tested domain function (`domain/places.ts`), and everything persists in
 localStorage.
 
+The detail panel's **Cause** field distinguishes human-caused fires: it pulls
+WFIGS's NWCG `FireCauseSpecific` and classifies it (`domain/cause.ts`, tested)
+into **Arson**, **Accidental** (debris burning, equipment, campfire, smoking,
+powerline, railroad, fireworks…), **Natural**, human-unspecified, or
+undetermined — shown as a color-coded badge next to the specific cause text.
+
 A selected incident's detail panel lists the distance to each saved place
 (nearest first, in the active unit), flagging any the fire is within the alert
 radius of, and a **Sources** section (`domain/sources.ts`) with two tiers:

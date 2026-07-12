@@ -24,7 +24,7 @@ export const SAMPLE_FIRES: Fire[] = [
   },
   {
     id: 'f3', source: 'NIFC WFIGS', externalId: 'demo-3', name: 'Rattlesnake Fire',
-    cause: 'Human', severity: 'high', status: 'active',
+    cause: 'Arson/Incendiary', severity: 'high', status: 'active',
     containmentPct: 12, acres: 11_030, discoveredAt: '2026-07-05T18:30:00Z', endedAt: null,
     location: { lat: 44.06, lng: -121.31, description: 'Deschutes County, OR' },
     weather: { windSpeedMph: 15, windDirectionDeg: 300, aqi: 132 },
