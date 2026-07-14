@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTheme } from '../lib/theme'
 import { useUnits } from '../lib/units'
 import { useNotificationSound, playChime } from '../lib/notificationSound'
+import { useDropOff, DROP_OFF_OPTIONS } from '../lib/dropOff'
 import { BASEMAPS } from '../lib/basemaps'
 import { notificationsSupported, requestNotificationPermission } from '../hooks/usePlaceAlerts'
 import { APP_VERSION, CHANGELOG, DATA_SOURCES, FAQ, REPO_URL, TUTORIAL, formatChangelogDate, groupChangelogByDate } from '../content'
@@ -58,6 +59,7 @@ export function SettingsModal({ open, onClose, basemapId, onSetBasemap, placeCou
   const { theme, toggle: toggleTheme } = useTheme()
   const { units, toggle: toggleUnits } = useUnits()
   const { soundEnabled, volume, setSoundEnabled, setVolume } = useNotificationSound()
+  const { dropOffHours, setDropOffHours } = useDropOff()
   const [perm, setPerm] = useState<string>(notificationsSupported() ? Notification.permission : 'unsupported')
 
   useEffect(() => {
@@ -107,6 +109,12 @@ export function SettingsModal({ open, onClose, basemapId, onSetBasemap, placeCou
                   <select className="settings-select" value={basemapId} onChange={(e) => onSetBasemap(e.target.value)}>
                     {BASEMAPS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
                   </select>
+                </Field>
+                <Field label="Drop off inactive fires">
+                  <select className="settings-select" value={dropOffHours} onChange={(e) => setDropOffHours(Number(e.target.value))}>
+                    {DROP_OFF_OPTIONS.map((o) => <option key={o.hours} value={o.hours}>{o.label}</option>)}
+                  </select>
+                  <p className="settings-hint">Hide active fires whose record hasn’t been updated within this time — no fresh confirmation they’re still burning. Contained and out fires are unaffected; a hidden fire reappears if it updates again.</p>
                 </Field>
               </>
             )}

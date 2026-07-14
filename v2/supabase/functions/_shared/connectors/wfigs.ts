@@ -13,6 +13,7 @@ const OUT_FIELDS = [
   'PercentContained', 'IncidentSize', 'DiscoveryAcres',
   'POOState', 'POOCounty', 'IncidentShortDescription',
   'FireCause', 'FireCauseGeneral', 'FireCauseSpecific',
+  'ModifiedOnDateTime_dt',
 ]
 
 export interface WfigsFeature {
@@ -49,6 +50,11 @@ export function parseWfigs(features: readonly WfigsFeature[], now: Date = new Da
     const shortDesc = pick(attr, ['IncidentShortDescription'])
 
     const outTime = pick(attr, ['FireOutDateTime', 'ControlDateTime'])
+    // The IRWIN record's real last-modified time drives staleness/drop-off; fall
+    // back to now only when the source omits it. (pick may be null, and num(null)
+    // is 0 — guard so a missing field doesn't become epoch 0.)
+    const modifiedRaw = pick(attr, ['ModifiedOnDateTime_dt', 'ModifiedOnDateTime'])
+    const modified = modifiedRaw != null ? num(modifiedRaw) : null
 
     rows.push({
       source: 'NIFC WFIGS',
@@ -72,7 +78,7 @@ export function parseWfigs(features: readonly WfigsFeature[], now: Date = new Da
         cause ? `Cause: ${cause}.` : null,
         shortDesc ? String(shortDesc) : null,
       ].filter(Boolean).join(' '),
-      updated_at: nowIso,
+      updated_at: modified != null ? new Date(modified).toISOString() : nowIso,
     })
   }
 

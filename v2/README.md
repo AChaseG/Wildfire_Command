@@ -117,9 +117,12 @@ great-circle distance along clicked points using the domain `haversineKm`; and
 **saved places with proximity alerts**.
 
 A **Settings** modal (gear in the top bar) collects preferences (theme, units,
-default basemap), notification controls (permission, alert sound + volume with a
-Web-Audio chime), a Tutorial, FAQ, What's-new changelog, an About/data-sources
-section, and a "clear saved places" reset.
+default basemap, and a **drop-off window** that hides active fires with no update
+within a chosen time — using WFIGS's `ModifiedOnDateTime_dt` as the real
+last-updated time; pure `applyDropOff` in `domain/dropoff.ts`, off by default,
+never touching contained/out fires), notification controls (permission, alert
+sound + volume with a Web-Audio chime), a Tutorial, FAQ, What's-new changelog, an
+About/data-sources section, and a "clear saved places" reset.
 
 ### Places & alerts
 

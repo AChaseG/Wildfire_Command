@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { useFires, useHotspots } from './data/hooks'
 import { useRealtimeSync } from './data/realtime'
 import { dataMode } from './data/fires'
-import { derivePlaceAlerts, firesWithinRadius, itemsInViewport, kmToMiles, type Bounds, type SavedPlace } from './domain'
+import { applyDropOff, derivePlaceAlerts, firesWithinRadius, itemsInViewport, kmToMiles, type Bounds, type SavedPlace } from './domain'
 import { useTheme } from './lib/theme'
 import { useUnits } from './lib/units'
 import { useNotificationSound } from './lib/notificationSound'
+import { useDropOff, dropOffLabel } from './lib/dropOff'
 import { useKeyLocations } from './hooks/useKeyLocations'
 import { usePlaceAlerts } from './hooks/usePlaceAlerts'
 import { recordObservations } from './lib/fireHistory'
@@ -22,7 +23,12 @@ type LeftTab = 'incidents' | 'alerts' | 'places'
 
 export default function App() {
   useRealtimeSync()
-  const { data: fires = [], isLoading, isError, error } = useFires()
+  const { data: allFires = [], isLoading, isError, error } = useFires()
+  const { dropOffHours } = useDropOff()
+  // User-configurable drop-off: hide active fires with no update within the
+  // chosen window. Everything downstream (list, map, alerts, counts) uses this.
+  const fires = useMemo(() => applyDropOff(allFires, dropOffHours), [allFires, dropOffHours])
+  const droppedCount = allFires.length - fires.length
   const { theme, toggle: toggleTheme } = useTheme()
   const { units, toggle: toggleUnits } = useUnits()
   const { locations, add: addLocation, update: updateLocation, remove: removeLocation, clear: clearLocations } = useKeyLocations()
@@ -119,6 +125,11 @@ export default function App() {
         </div>
         <div className="top-meta">
           <span className="count">{fires.length} incidents</span>
+          {droppedCount > 0 && (
+            <span className="dropped" title={`Hidden: no update within ${dropOffLabel(dropOffHours)}. Change in Settings → General.`}>
+              {droppedCount} inactive hidden
+            </span>
+          )}
           {dataMode === 'live' && <span className="live" title="Live data fetched directly from NIFC WFIGS — no backend">live · WFIGS</span>}
           {dataMode === 'demo' && <span className="demo" title="Bundled sample data (VITE_DATA_MODE=demo)">demo data</span>}
           <button className="toggle-btn" onClick={toggleUnits} type="button" title="Toggle units">{units === 'imperial' ? 'mi · ac' : 'km · ha'}</button>

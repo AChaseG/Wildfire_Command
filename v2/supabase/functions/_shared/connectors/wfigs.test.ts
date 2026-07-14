@@ -53,7 +53,16 @@ describe('parseWfigs', () => {
     expect(r.cause).toBe('Lightning')
     expect(r.ended_at).toBeNull()
     expect(r.source).toBe('NIFC WFIGS')
-    expect(r.updated_at).toBe(now.toISOString())
+    expect(r.updated_at).toBe(now.toISOString()) // no ModifiedOnDateTime_dt → falls back to now
+  })
+
+  it('uses the IRWIN ModifiedOnDateTime_dt as updated_at when present', () => {
+    const modified = Date.parse('2026-07-06T09:30:00Z')
+    const [r] = parseWfigs(
+      [feat({ IrwinID: 'm', IncidentName: 'MODIFIED', ModifiedOnDateTime_dt: modified }, { x: -120, y: 39 })],
+      now,
+    )
+    expect(r!.updated_at).toBe('2026-07-06T09:30:00.000Z')
   })
 
   it('keeps a name that already reads as a complex without doubling "Fire"', () => {

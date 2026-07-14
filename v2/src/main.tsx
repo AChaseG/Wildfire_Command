@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from './lib/theme'
 import { UnitsProvider } from './lib/units'
 import { NotificationSoundProvider } from './lib/notificationSound'
+import { DropOffProvider } from './lib/dropOff'
 import App from './App'
 import './index.css'
 
@@ -20,7 +21,9 @@ createRoot(root).render(
       <ThemeProvider>
         <UnitsProvider>
           <NotificationSoundProvider>
-            <App />
+            <DropOffProvider>
+              <App />
+            </DropOffProvider>
           </NotificationSoundProvider>
         </UnitsProvider>
       </ThemeProvider>
