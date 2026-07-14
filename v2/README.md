@@ -146,8 +146,11 @@ radius of, and a **Sources** section (`domain/sources.ts`) with two tiers:
   directly to that incident's record by IrwinID), plus Open-Meteo and PurpleAir
   when wind/AQI enrichment is present.
 - **Related sources** — authoritative cross-references deep-linked by location:
-  WildCAD/WildWeb (interagency dispatch CAD logs), InciWeb (official incident
-  updates and closures), and a NASA FIRMS map centered on the incident.
+  WildCAD/WildWeb (interagency dispatch CAD logs), **Broadcastify** (live
+  fire/police scanner feeds — linked to the incident's state listen page, a
+  plain link per Broadcastify's terms; no scraping or audio redistribution),
+  InciWeb (official incident updates and closures), and a NASA FIRMS map
+  centered on the incident.
 
 The panel also has a **Nearby news** section (`src/data/fireNews.ts`): recent
 US news matched to the incident via GDELT's DOC 2.0 API — keyless, so it runs

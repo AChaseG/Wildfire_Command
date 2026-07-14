@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { fireSources } from './sources'
+import { broadcastifyListenUrl, fireSources } from './sources'
 import type { Fire } from './fire'
 
 const fire = (o: Partial<Fire> = {}): Fire => ({
@@ -39,9 +39,16 @@ describe('fireSources', () => {
     expect(names(fire({ weather: { windSpeedMph: null, windDirectionDeg: null, aqi: 152 } }))).toContain('Open-Meteo Air Quality')
   })
 
-  it('always includes reference sources (WildCAD, InciWeb, FIRMS)', () => {
+  it('always includes reference sources (WildCAD, Broadcastify, InciWeb, FIRMS)', () => {
     const refs = fireSources(fire()).filter((s) => s.kind === 'reference')
-    expect(refs.map((s) => s.name)).toEqual(['WildCAD · WildWeb', 'InciWeb', 'NASA FIRMS'])
+    expect(refs.map((s) => s.name)).toEqual(['WildCAD · WildWeb', 'Broadcastify scanner', 'InciWeb', 'NASA FIRMS'])
+  })
+
+  it('links Broadcastify to the incident state (FIPS stid), or nationally when unknown', () => {
+    expect(broadcastifyListenUrl('Los Angeles County, CA')).toBe('https://www.broadcastify.com/listen/?stid=6')
+    expect(broadcastifyListenUrl('Deschutes County, OR')).toBe('https://www.broadcastify.com/listen/?stid=41')
+    expect(broadcastifyListenUrl(null)).toBe('https://www.broadcastify.com/listen/')
+    expect(broadcastifyListenUrl('Somewhere unknown')).toBe('https://www.broadcastify.com/listen/')
   })
 
   it('deep-links the FIRMS map to the incident coordinates', () => {
