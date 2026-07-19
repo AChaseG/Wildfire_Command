@@ -55,20 +55,20 @@ const place = (o: Partial<SavedPlace> = {}): SavedPlace => ({
 })
 
 describe('derivePlaceAlerts', () => {
-  it('with no places, surfaces only extreme fires', () => {
+  it('with no places, surfaces only critical-priority fires', () => {
     const fires = [
-      fire({ id: 'ex', severity: 'extreme', containmentPct: 80, location: { lat: 50, lng: 50, description: null } }),
-      fire({ id: 'mod', severity: 'moderate', location: { lat: 50, lng: 50, description: null } }),
+      fire({ id: 'crit', acres: 20_000, containmentPct: 10, location: { lat: 50, lng: 50, description: null } }),
+      fire({ id: 'calm', acres: 50, containmentPct: 90, location: { lat: 50, lng: 50, description: null } }),
     ]
     const ids = derivePlaceAlerts(fires, []).map((a) => a.fireId)
-    expect(ids).toContain('ex')
-    expect(ids).not.toContain('mod')
+    expect(ids).toContain('crit')
+    expect(ids).not.toContain('calm')
   })
 
-  it('surfaces a non-extreme fire only when it is within a place radius', () => {
+  it('surfaces a non-critical fire only when it is within a place radius', () => {
     const home = place({ lat: 34.05, lng: -118.24, alertRadiusKm: 40 })
-    const nearFire = fire({ id: 'near', severity: 'moderate', location: { lat: 34.1, lng: -118.2, description: null } })
-    const farFire = fire({ id: 'far', severity: 'moderate', location: { lat: 40, lng: -100, description: null } })
+    const nearFire = fire({ id: 'near', acres: 200, containmentPct: 60, location: { lat: 34.1, lng: -118.2, description: null } })
+    const farFire = fire({ id: 'far', acres: 200, containmentPct: 60, location: { lat: 40, lng: -100, description: null } })
     const alerts = derivePlaceAlerts([nearFire, farFire], [home])
     expect(alerts.some((a) => a.fireId === 'near' && a.id === 'near:prox')).toBe(true)
     expect(alerts.some((a) => a.fireId === 'far')).toBe(false)

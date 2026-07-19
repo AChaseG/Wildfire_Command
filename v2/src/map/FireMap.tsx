@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { SEVERITY_META, haversineKm, formatDistance, type Bounds, type Fire, type Hotspot, type UnitSystem } from '../domain'
+import { PRIORITY_META, PRIORITY_ORDER, firePriority, haversineKm, formatDistance, type Bounds, type Fire, type Hotspot, type UnitSystem } from '../domain'
 import type { SavedPlace } from '../domain'
 import { basemapStyle } from '../lib/basemaps'
 
@@ -43,7 +43,10 @@ function firesToGeoJSON(fires: Fire[]): GeoData {
       type: 'Feature', id: f.id,
       geometry: { type: 'Point', coordinates: [f.location.lng, f.location.lat] },
       properties: {
-        id: f.id, name: f.name, color: SEVERITY_META[f.severity].color, severity: f.severity,
+        id: f.id, name: f.name,
+        // Color/icon follow priority (size + containment); icon size follows the
+        // fire's own severity band (≈ acreage), so both dimensions read at once.
+        priority: firePriority(f), color: PRIORITY_META[firePriority(f)].color, severity: f.severity,
         containment: f.containmentPct, discoveredAt: f.discoveredAt,
       },
     })),
@@ -86,19 +89,20 @@ function measureToGeoJSON(points: [number, number][]): GeoData {
 
 const RADIUS: maplibregl.ExpressionSpecification = ['match', ['get', 'severity'], 'extreme', 11, 'high', 8, 'moderate', 6, 4]
 
-// Fire icon: a small flame drawn per severity color, so the color scheme is
-// preserved. A flame silhouette in a 24×24 box (SVG path), rendered to a canvas
-// image per severity and added to the map as `flame-<severity>`.
-const SEVERITIES = ['low', 'moderate', 'high', 'extreme'] as const
+// Fire icon: a small flame drawn per priority color (size + containment). A
+// flame silhouette in a 24×24 box (SVG path), rendered to a canvas image per
+// priority and added to the map as `flame-<priority>`. Icon size, separately,
+// follows the fire's severity band (≈ acreage).
 const FLAME_PATH = 'M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73S7.5 7.53 7.5 5.47l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z'
 const FLAME_SIZE = 30 // logical px at icon-size 1
 const FLAME_RATIO = 2 // device pixels per logical px, for crispness
 
-// Icon size per severity (bigger fires burn larger).
+// Icon size by fire size (severity band ≈ acreage) — bigger fires burn larger.
 const FLAME_ICON_SIZE: maplibregl.ExpressionSpecification =
   ['match', ['get', 'severity'], 'extreme', 1, 'high', 0.82, 'moderate', 0.68, 0.55]
+// Icon (and thus color) by priority.
 const FLAME_ICON: maplibregl.ExpressionSpecification =
-  ['match', ['get', 'severity'], 'extreme', 'flame-extreme', 'high', 'flame-high', 'moderate', 'flame-moderate', 'flame-low']
+  ['match', ['get', 'priority'], 'critical', 'flame-critical', 'high', 'flame-high', 'moderate', 'flame-moderate', 'flame-low']
 
 function flameImage(hex: string): ImageData | null {
   if (typeof document === 'undefined') return null
@@ -119,13 +123,13 @@ function flameImage(hex: string): ImageData | null {
   return ctx.getImageData(0, 0, px, px)
 }
 
-// Register a flame image per severity color. Idempotent (setStyle clears images,
+// Register a flame image per priority color. Idempotent (setStyle clears images,
 // so this re-runs on each style load).
 function ensureFlameImages(map: maplibregl.Map): void {
-  for (const sev of SEVERITIES) {
-    const id = `flame-${sev}`
+  for (const p of PRIORITY_ORDER) {
+    const id = `flame-${p}`
     if (map.hasImage(id)) continue
-    const img = flameImage(SEVERITY_META[sev].color)
+    const img = flameImage(PRIORITY_META[p].color)
     if (img) map.addImage(id, img, { pixelRatio: FLAME_RATIO })
   }
 }

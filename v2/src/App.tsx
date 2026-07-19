@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { useFires, useHotspots } from './data/hooks'
 import { useRealtimeSync } from './data/realtime'
 import { dataMode } from './data/fires'
-import { applyDropOff, derivePlaceAlerts, firesWithinRadius, itemsInViewport, kmToMiles, type Bounds, type SavedPlace } from './domain'
+import { applyDropOff, derivePlaceAlerts, firesWithinRadius, itemsInViewport, kmToMiles, PRIORITY_META, PRIORITY_ORDER, type Bounds, type SavedPlace } from './domain'
 import { useTheme } from './lib/theme'
 import { useUnits } from './lib/units'
 import { useNotificationSound } from './lib/notificationSound'
@@ -205,6 +205,15 @@ export default function App() {
             <select className="basemap-select" value={basemapId} onChange={(e) => setBasemapId(e.target.value)} aria-label="Basemap">
               {BASEMAPS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
             </select>
+          </div>
+          <div className="map-legend" title="Priority = fire size + containment (an app estimate, not an official scale). Icon size reflects fire size.">
+            <span className="legend-title">Priority</span>
+            {PRIORITY_ORDER.map((p) => (
+              <span key={p} className="legend-item">
+                <span className="legend-swatch" style={{ backgroundColor: PRIORITY_META[p].color }} />
+                {PRIORITY_META[p].label}
+              </span>
+            ))}
           </div>
         </div>
 

@@ -5,11 +5,13 @@ import {
   classifyCause,
   deriveFireTimeline,
   fireDurationMs,
+  firePriority,
   fireSources,
   formatArea,
   formatDistance,
   formatWind,
   haversineKm,
+  PRIORITY_META,
   resolveFireStatus,
   sizeClass,
   SIZE_CLASS_RANGE,
@@ -141,7 +143,12 @@ export function IncidentDetail({ fire, places, historyVersion = 0, onClose }: Pr
             {formatArea(fire.acres, units)} <span className="size-class">Class {sizeClass(fire.acres)}</span>
           </span>
         } />
-        <Stat label="Severity" value={fire.severity} />
+        <Stat label="Priority" value={
+          <span className="priority-value" title="App priority = NWCG size class + containment. Not an official scale.">
+            <span className="priority-dot" style={{ backgroundColor: PRIORITY_META[firePriority(fire)].color }} aria-hidden />
+            {PRIORITY_META[firePriority(fire)].label}
+          </span>
+        } />
         <Stat label="Cause" value={<CauseValue cause={fire.cause} />} />
         <Stat label="Wind" value={formatWind(fire.weather.windSpeedMph, fire.weather.windDirectionDeg, units)} />
         <Stat label="Air quality" value={fire.weather.aqi == null ? '—' : String(fire.weather.aqi)} />

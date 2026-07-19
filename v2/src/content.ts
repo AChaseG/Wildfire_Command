@@ -1,6 +1,6 @@
 // Static help/marketing content surfaced in Settings.
 
-export const APP_VERSION = '2.4.0'
+export const APP_VERSION = '2.5.0'
 export const REPO_URL = 'https://github.com/AChaseG/Wildfire_Command'
 
 export interface TutorialStep { title: string; body: string }
@@ -8,7 +8,7 @@ export interface TutorialStep { title: string; body: string }
 export const TUTORIAL: TutorialStep[] = [
   { title: 'Browse incidents', body: 'The left panel lists wildfires currently in the map view — pan or zoom the map to change what’s listed. Search by name or place, and filter by status (Active, Contained, Out).' },
   { title: 'Inspect a fire', body: 'Select an incident for its detail panel: size and NWCG size class, cause (arson vs. accidental where known), wind and air quality, distance to each saved place, an updates timeline, nearby news, and links to every data source.' },
-  { title: 'Read the map', body: 'Each fire is a flame icon colored by severity (green → red) and sized to its severity. Hover one for a quick card (name, start date, containment). Toggle FIRMS hotspots (backend), switch basemaps, and zoom/pan freely.' },
+  { title: 'Read the map', body: 'Each fire is a flame icon colored by priority (green → dark red) with its size showing the fire’s acreage — so color says how urgent, size says how big. Hover one for a quick card (name, start date, containment). Toggle FIRMS hotspots (backend), switch basemaps, and zoom/pan freely.' },
   { title: 'Measure distance', body: 'Turn on Measure and click points on the map to sum the great-circle distance between them.' },
   { title: 'Save places & alerts', body: 'On Places, add a location by address or by dropping a pin, name it, pick a star color, and set an alert radius. Enable alerts for a browser notification when a fire enters that radius. Select a place to filter the incident list to its radius.' },
   { title: 'Watch what matters', body: 'The Alerts tab focuses on fires near your saved places or of extreme severity, including hazardous-air warnings.' },
@@ -30,6 +30,7 @@ export const FAQ: FaqItem[] = [
   { q: 'Why don’t alerts fire when the app is closed?', a: 'Browser notifications only work while a tab is open. Truly external alerts (email/SMS/push when the app is closed) require a backend and a push service.' },
   { q: 'What are FIRMS hotspots?', a: 'Satellite thermal detections from NASA FIRMS — points where sensors detected heat. They render as a heatmap and are a leading signal, not confirmed incidents. They need the optional backend.' },
   { q: 'How is a fire marked contained or out?', a: 'From the incident’s own data: 100% containment or a containment date → contained; an out/control date → out. Otherwise it stays active.' },
+  { q: 'What do the fire colors (priority) mean?', a: 'Color is a “priority” estimate combining how big a fire is with how contained it is — a large, barely-contained fire outranks an equally large but mostly-contained one (green = low → dark red = critical). It’s the app’s own heuristic, not an official scale. The authoritative size number, the NWCG Size Class (A–G), is shown on each incident. Icon size on the map reflects acreage, so color tells you urgency and size tells you scale.' },
   { q: 'Can I hide fires that have gone quiet?', a: 'Yes — Settings → General → “Drop off inactive fires.” Pick a window (e.g. 3 or 7 days) and any active fire whose record hasn’t updated within it is hidden, since there’s no fresh confirmation it’s still burning. It’s off by default, never hides contained/out fires, and a hidden fire reappears the moment it updates again. The top bar shows how many are hidden.' },
   { q: 'Can I add live scanner radio?', a: 'Optionally. If you run your own broadcastify-transcriber instance (a Python/ffmpeg/Whisper service that transcribes Broadcastify feeds), paste its URL in Settings → Integrations to get a Scanner tab of live transcribed fire/police radio, filtered to wildfire-related chatter. You host it yourself; it must be reachable over HTTPS with CORS enabled for this site. Nothing is enabled by default.' },
   { q: 'Do the alert radius and distances use my chosen units?', a: 'Yes. Everything follows the mi/km setting in Settings → General.' },
@@ -40,6 +41,14 @@ export const FAQ: FaqItem[] = [
 export interface ChangelogEntry { version: string; date: string; items: string[] }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '2.5.0',
+    date: '2026-07-14',
+    items: [
+      'Map colors now reflect “priority” — fire size combined with containment — so a large, barely-contained fire stands out from an equally large but mostly-contained one. Icon size still reflects acreage, and a legend explains the colors.',
+      'The incident panel now shows Priority alongside the official NWCG Size Class, and Alerts focus on critical-priority fires.',
+    ],
+  },
   {
     version: '2.4.0',
     date: '2026-07-14',

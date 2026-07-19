@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
-import { formatArea, type Fire } from '../domain'
+import { firePriority, formatArea, type Fire } from '../domain'
 import { useUnits } from '../lib/units'
-import { SeverityDot } from './badges'
+import { PriorityDot } from './badges'
 
 type StatusFilter = 'all' | 'active' | 'contained' | 'out'
 
@@ -94,7 +94,7 @@ export function IncidentList({ fires, selectedId, onSelect, loading, total, focu
             onClick={() => onSelect(fire.id)}
             type="button"
           >
-            <SeverityDot severity={fire.severity} />
+            <PriorityDot priority={firePriority(fire)} />
             <span className="row-main">
               <span className="row-name">{fire.name}</span>
               <span className="row-sub">{fire.location.description ?? '—'}</span>

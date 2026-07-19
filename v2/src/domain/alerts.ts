@@ -1,5 +1,6 @@
 import type { Fire } from './fire'
 import { firesWithinRadius, type SavedPlace } from './places'
+import { firePriority } from './priority'
 import { formatDistance, type UnitSystem } from './units'
 
 export type AlertLevel = 'critical' | 'warning' | 'info'
@@ -70,9 +71,9 @@ function nearestPlaceByFire(
 }
 
 // Alerts for the Alerts panel: restricted to fires that are either within a
-// saved place's alert radius OR of extreme severity — nothing else. Fires near a
-// place get a proximity alert; extreme fires and hazardous air are surfaced for
-// the eligible set. With no saved places, this is just the extreme fires.
+// saved place's alert radius OR of critical priority — nothing else. Fires near
+// a place get a proximity alert; critical fires and hazardous air are surfaced
+// for the eligible set. With no saved places, this is just the critical fires.
 export function derivePlaceAlerts(
   fires: readonly Fire[],
   places: readonly SavedPlace[],
@@ -84,20 +85,20 @@ export function derivePlaceAlerts(
   for (const f of fires) {
     if (f.status === 'out') continue
     const proximity = near.get(f.id)
-    const isExtreme = f.severity === 'extreme'
-    if (!proximity && !isExtreme) continue // only proximity or extreme fires
+    const isCritical = firePriority(f) === 'critical'
+    if (!proximity && !isCritical) continue // only proximity or critical-priority fires
 
     if (proximity) {
       alerts.push({
-        id: `${f.id}:prox`, fireId: f.id, level: isExtreme ? 'critical' : 'warning',
+        id: `${f.id}:prox`, fireId: f.id, level: isCritical ? 'critical' : 'warning',
         title: `${f.name}: ${formatDistance(proximity.distanceKm, units)} from ${proximity.place.name}`,
-        detail: `${f.severity} severity, ${f.containmentPct}% contained.`,
+        detail: `${f.acres.toLocaleString()} acres, ${f.containmentPct}% contained.`,
       })
     }
-    if (isExtreme) {
+    if (isCritical) {
       alerts.push({
-        id: `${f.id}:extreme`, fireId: f.id, level: 'critical',
-        title: `${f.name}: extreme fire at ${f.containmentPct}% containment`,
+        id: `${f.id}:critical`, fireId: f.id, level: 'critical',
+        title: `${f.name}: critical-priority fire at ${f.containmentPct}% containment`,
         detail: `${f.acres.toLocaleString()} acres in ${f.location.description ?? 'an unknown area'}.`,
       })
     }

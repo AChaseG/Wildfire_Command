@@ -1,12 +1,12 @@
-import { SEVERITY_META, STATUS_META, type Severity, type FireStatus } from '../domain'
+import { PRIORITY_META, STATUS_META, type Priority, type FireStatus } from '../domain'
 
-export function SeverityDot({ severity }: { severity: Severity }) {
+export function PriorityDot({ priority }: { priority: Priority }) {
   return (
     <span
       className="sev-dot"
-      style={{ backgroundColor: SEVERITY_META[severity].color }}
-      title={`${SEVERITY_META[severity].label} severity`}
-      aria-label={`${SEVERITY_META[severity].label} severity`}
+      style={{ backgroundColor: PRIORITY_META[priority].color }}
+      title={`${PRIORITY_META[priority].label} priority`}
+      aria-label={`${PRIORITY_META[priority].label} priority`}
     />
   )
 }
