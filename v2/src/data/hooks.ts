@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { fetchFires, fetchFireUpdates, fetchHotspots } from './fires'
 import { fetchFireNews } from './fireNews'
+import { fetchTransmissions } from './transcriber'
 import type { Fire } from '../domain'
 
 // Realtime (slice 4) will push into this same cache; for now a periodic refetch
@@ -38,6 +39,19 @@ export function useFireNews(fire: Fire | null) {
     queryFn: ({ signal }) => fetchFireNews(fire as Fire, signal),
     enabled: fire != null,
     staleTime: 600_000,
+    retry: 1,
+  })
+}
+
+// Scanner transmissions from the user's broadcastify-transcriber instance.
+// Enabled only when a URL is configured; polls every 30s.
+export function useScannerFeed(baseUrl: string) {
+  return useQuery({
+    queryKey: ['scanner', baseUrl],
+    queryFn: ({ signal }) => fetchTransmissions(baseUrl, 100, signal),
+    enabled: baseUrl.length > 0,
+    refetchInterval: 30_000,
+    staleTime: 15_000,
     retry: 1,
   })
 }

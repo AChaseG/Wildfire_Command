@@ -155,6 +155,20 @@ radius of, and a **Sources** section (`domain/sources.ts`) with two tiers:
   InciWeb (official incident updates and closures), and a NASA FIRMS map
   centered on the incident.
 
+### Scanner (optional integration)
+
+An opt-in **Scanner** tab surfaces live, transcribed radio from a self-hosted
+[broadcastify-transcriber](https://github.com/Opertum/broadcastify-transcriber)
+instance (Python + ffmpeg + Whisper → FastAPI). Set its URL in **Settings →
+Integrations** and the app polls its `/api/transmissions` endpoint, filtering to
+wildfire-related chatter (`isWildfireRelated`, tested). Off by default and
+scoped to what you configure: you host the transcriber yourself, it must be
+reachable over **HTTPS** with **CORS** enabled for this origin (a plain http://
+address is blocked on the deployed HTTPS site), and note it streams
+Broadcastify's public audio directly — a gray area under Broadcastify's terms.
+The response parser (`src/data/transcriber.ts`) is tolerant of field-name
+variants; adjust it if your build differs.
+
 The panel also has a **Nearby news** section (`src/data/fireNews.ts`): recent
 US news matched to the incident via GDELT's DOC 2.0 API — keyless, so it runs
 browser-direct like everything else. GDELT's JSON endpoint doesn't reliably

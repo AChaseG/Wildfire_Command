@@ -1,6 +1,6 @@
 // Static help/marketing content surfaced in Settings.
 
-export const APP_VERSION = '2.2.0'
+export const APP_VERSION = '2.3.0'
 export const REPO_URL = 'https://github.com/AChaseG/Wildfire_Command'
 
 export interface TutorialStep { title: string; body: string }
@@ -30,6 +30,7 @@ export const FAQ: FaqItem[] = [
   { q: 'What are FIRMS hotspots?', a: 'Satellite thermal detections from NASA FIRMS — points where sensors detected heat. They render as a heatmap and are a leading signal, not confirmed incidents. They need the optional backend.' },
   { q: 'How is a fire marked contained or out?', a: 'From the incident’s own data: 100% containment or a containment date → contained; an out/control date → out. Otherwise it stays active.' },
   { q: 'Can I hide fires that have gone quiet?', a: 'Yes — Settings → General → “Drop off inactive fires.” Pick a window (e.g. 3 or 7 days) and any active fire whose record hasn’t updated within it is hidden, since there’s no fresh confirmation it’s still burning. It’s off by default, never hides contained/out fires, and a hidden fire reappears the moment it updates again. The top bar shows how many are hidden.' },
+  { q: 'Can I add live scanner radio?', a: 'Optionally. If you run your own broadcastify-transcriber instance (a Python/ffmpeg/Whisper service that transcribes Broadcastify feeds), paste its URL in Settings → Integrations to get a Scanner tab of live transcribed fire/police radio, filtered to wildfire-related chatter. You host it yourself; it must be reachable over HTTPS with CORS enabled for this site. Nothing is enabled by default.' },
   { q: 'Do the alert radius and distances use my chosen units?', a: 'Yes. Everything follows the mi/km setting in Settings → General.' },
 ]
 
@@ -38,6 +39,13 @@ export const FAQ: FaqItem[] = [
 export interface ChangelogEntry { version: string; date: string; items: string[] }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '2.3.0',
+    date: '2026-07-14',
+    items: [
+      'Optional Scanner tab: connect your own broadcastify-transcriber instance (Settings → Integrations) to see live, transcribed fire/police radio filtered to wildfire chatter.',
+    ],
+  },
   {
     version: '2.2.0',
     date: '2026-07-14',

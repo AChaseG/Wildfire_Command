@@ -7,6 +7,7 @@ import { useTheme } from './lib/theme'
 import { useUnits } from './lib/units'
 import { useNotificationSound } from './lib/notificationSound'
 import { useDropOff, dropOffLabel } from './lib/dropOff'
+import { useTranscriber } from './lib/transcriber'
 import { useKeyLocations } from './hooks/useKeyLocations'
 import { usePlaceAlerts } from './hooks/usePlaceAlerts'
 import { recordObservations } from './lib/fireHistory'
@@ -15,11 +16,12 @@ import { FireMap, type MapMode } from './map/FireMap'
 import { IncidentList } from './components/IncidentList'
 import { AlertsList } from './components/AlertsList'
 import { PlacesList } from './components/PlacesList'
+import { ScannerList } from './components/ScannerList'
 import { IncidentDetail } from './components/IncidentDetail'
 import { SettingsModal, type SettingsSection } from './components/SettingsModal'
 import { APP_VERSION } from './content'
 
-type LeftTab = 'incidents' | 'alerts' | 'places'
+type LeftTab = 'incidents' | 'alerts' | 'places' | 'scanner'
 
 export default function App() {
   useRealtimeSync()
@@ -29,6 +31,7 @@ export default function App() {
   // chosen window. Everything downstream (list, map, alerts, counts) uses this.
   const fires = useMemo(() => applyDropOff(allFires, dropOffHours), [allFires, dropOffHours])
   const droppedCount = allFires.length - fires.length
+  const { url: transcriberUrl } = useTranscriber()
   const { theme, toggle: toggleTheme } = useTheme()
   const { units, toggle: toggleUnits } = useUnits()
   const { locations, add: addLocation, update: updateLocation, remove: removeLocation, clear: clearLocations } = useKeyLocations()
@@ -66,6 +69,8 @@ export default function App() {
     if (recordObservations(fires) > 0) setHistoryVersion((v) => v + 1)
   }, [fires])
   const [leftTab, setLeftTab] = useState<LeftTab>('incidents')
+  // Fall back if the Scanner tab is open when its integration gets disabled.
+  useEffect(() => { if (leftTab === 'scanner' && !transcriberUrl) setLeftTab('incidents') }, [leftTab, transcriberUrl])
   const [mode, setMode] = useState<MapMode>('select')
   const [basemapId, setBasemapId] = useState(() => {
     const saved = localStorage.getItem('wc-basemap')
@@ -156,6 +161,7 @@ export default function App() {
             <button className={`tab ${leftTab === 'incidents' ? 'active' : ''}`} onClick={() => setLeftTab('incidents')} type="button">Incidents <span className="tab-count">{incidentsForList.length}</span></button>
             <button className={`tab ${leftTab === 'alerts' ? 'active' : ''}`} onClick={() => setLeftTab('alerts')} type="button">Alerts <span className="tab-count alert">{alerts.length}</span></button>
             <button className={`tab ${leftTab === 'places' ? 'active' : ''}`} onClick={() => setLeftTab('places')} type="button">Places <span className="tab-count">{locations.length}</span></button>
+            {transcriberUrl && <button className={`tab ${leftTab === 'scanner' ? 'active' : ''}`} onClick={() => setLeftTab('scanner')} type="button">Scanner</button>}
           </div>
           {leftTab === 'incidents' && (
             <IncidentList
@@ -172,6 +178,7 @@ export default function App() {
               onAdd={addLocation} onUpdate={updateLocation} onRemove={removeLocation} onFocus={focusPlace}
             />
           )}
+          {leftTab === 'scanner' && transcriberUrl && <ScannerList url={transcriberUrl} />}
         </aside>
 
         <div className="map-wrap">

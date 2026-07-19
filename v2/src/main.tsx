@@ -5,6 +5,7 @@ import { ThemeProvider } from './lib/theme'
 import { UnitsProvider } from './lib/units'
 import { NotificationSoundProvider } from './lib/notificationSound'
 import { DropOffProvider } from './lib/dropOff'
+import { TranscriberProvider } from './lib/transcriber'
 import App from './App'
 import './index.css'
 
@@ -22,7 +23,9 @@ createRoot(root).render(
         <UnitsProvider>
           <NotificationSoundProvider>
             <DropOffProvider>
-              <App />
+              <TranscriberProvider>
+                <App />
+              </TranscriberProvider>
             </DropOffProvider>
           </NotificationSoundProvider>
         </UnitsProvider>

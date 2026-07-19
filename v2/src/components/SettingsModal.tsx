@@ -3,16 +3,18 @@ import { useTheme } from '../lib/theme'
 import { useUnits } from '../lib/units'
 import { useNotificationSound, playChime } from '../lib/notificationSound'
 import { useDropOff, DROP_OFF_OPTIONS } from '../lib/dropOff'
+import { useTranscriber } from '../lib/transcriber'
 import { BASEMAPS } from '../lib/basemaps'
 import { notificationsSupported, requestNotificationPermission } from '../hooks/usePlaceAlerts'
 import { APP_VERSION, CHANGELOG, DATA_SOURCES, FAQ, REPO_URL, TUTORIAL, formatChangelogDate, groupChangelogByDate } from '../content'
 
-export type SettingsSection = 'general' | 'notifications' | 'tutorial' | 'faq' | 'whatsnew' | 'about'
+export type SettingsSection = 'general' | 'notifications' | 'integrations' | 'tutorial' | 'faq' | 'whatsnew' | 'about'
 type Section = SettingsSection
 
 const NAV: { id: Section; label: string }[] = [
   { id: 'general', label: 'General' },
   { id: 'notifications', label: 'Notifications' },
+  { id: 'integrations', label: 'Integrations' },
   { id: 'tutorial', label: 'Tutorial' },
   { id: 'faq', label: 'FAQ' },
   { id: 'whatsnew', label: "What's new" },
@@ -60,6 +62,7 @@ export function SettingsModal({ open, onClose, basemapId, onSetBasemap, placeCou
   const { units, toggle: toggleUnits } = useUnits()
   const { soundEnabled, volume, setSoundEnabled, setVolume } = useNotificationSound()
   const { dropOffHours, setDropOffHours } = useDropOff()
+  const { url: transcriberUrl, setUrl: setTranscriberUrl } = useTranscriber()
   const [perm, setPerm] = useState<string>(notificationsSupported() ? Notification.permission : 'unsupported')
 
   useEffect(() => {
@@ -138,6 +141,30 @@ export function SettingsModal({ open, onClose, basemapId, onSetBasemap, placeCou
                     <input type="range" min={0} max={100} value={Math.round(volume * 100)} disabled={!soundEnabled} onChange={(e) => setVolume(Number(e.target.value) / 100)} />
                     <button className="btn-ghost" type="button" onClick={() => playChime(volume)} disabled={!soundEnabled}>Test</button>
                   </div>
+                </Field>
+              </>
+            )}
+
+            {section === 'integrations' && (
+              <>
+                <Field label="Scanner transcriber URL">
+                  <input
+                    className="settings-select"
+                    type="url"
+                    placeholder="https://your-transcriber.example.com"
+                    value={transcriberUrl}
+                    onChange={(e) => setTranscriberUrl(e.target.value)}
+                    aria-label="Transcriber base URL"
+                  />
+                  <p className="settings-hint">
+                    Point this at your own running <a href="https://github.com/Opertum/broadcastify-transcriber" target="_blank" rel="noreferrer">broadcastify-transcriber</a> instance
+                    to add a <b>Scanner</b> tab with live, transcribed fire/police radio, filtered to wildfire-related chatter. Leave blank to disable.
+                  </p>
+                  <p className="settings-hint">
+                    Requirements: you run the transcriber yourself (Python + ffmpeg + Whisper); it must be reachable from this page over <b>HTTPS</b> (a plain
+                    http:// address is blocked on the deployed HTTPS site — run it behind TLS/a tunnel, or run this app locally), and it must send <b>CORS</b> headers
+                    allowing this origin. Note: it streams Broadcastify’s public audio directly, which is a gray area under Broadcastify’s terms — review those before relying on it.
+                  </p>
                 </Field>
               </>
             )}
