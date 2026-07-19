@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { severityFromAcres, compareSeverity, SEVERITY_META, SEVERITY_ORDER } from './severity'
+import { severityFromAcres, compareSeverity, sizeClass, SEVERITY_META, SEVERITY_ORDER } from './severity'
 
 describe('severityFromAcres', () => {
   it('maps acreage to bands at the boundaries', () => {
@@ -10,6 +10,24 @@ describe('severityFromAcres', () => {
     expect(severityFromAcres(10_000)).toBe('high')
     expect(severityFromAcres(49_999)).toBe('high')
     expect(severityFromAcres(50_000)).toBe('extreme')
+  })
+})
+
+describe('sizeClass (NWCG A–G)', () => {
+  it('maps acreage to the official size classes at boundaries', () => {
+    expect(sizeClass(0.25)).toBe('A')
+    expect(sizeClass(0.26)).toBe('B')
+    expect(sizeClass(9.99)).toBe('B')
+    expect(sizeClass(10)).toBe('C')
+    expect(sizeClass(99)).toBe('C')
+    expect(sizeClass(100)).toBe('D')
+    expect(sizeClass(299)).toBe('D')
+    expect(sizeClass(300)).toBe('E')
+    expect(sizeClass(999)).toBe('E')
+    expect(sizeClass(1_000)).toBe('F')
+    expect(sizeClass(4_999)).toBe('F')
+    expect(sizeClass(5_000)).toBe('G')
+    expect(sizeClass(120_000)).toBe('G')
   })
 })
 

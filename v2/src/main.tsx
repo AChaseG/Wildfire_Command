@@ -6,6 +6,7 @@ import { UnitsProvider } from './lib/units'
 import { NotificationSoundProvider } from './lib/notificationSound'
 import { DropOffProvider } from './lib/dropOff'
 import { TranscriberProvider } from './lib/transcriber'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import App from './App'
 import './index.css'
 
@@ -18,6 +19,7 @@ const queryClient = new QueryClient({
 
 createRoot(root).render(
   <StrictMode>
+    <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <UnitsProvider>
@@ -31,5 +33,6 @@ createRoot(root).render(
         </UnitsProvider>
       </ThemeProvider>
     </QueryClientProvider>
+    </ErrorBoundary>
   </StrictMode>,
 )

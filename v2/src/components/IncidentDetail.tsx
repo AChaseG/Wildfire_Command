@@ -11,10 +11,13 @@ import {
   formatWind,
   haversineKm,
   resolveFireStatus,
+  sizeClass,
+  SIZE_CLASS_RANGE,
   type Fire,
   type FireUpdate,
   type SavedPlace,
 } from '../domain'
+import { dataMode } from '../data/fires'
 import { useFireNews, useFireUpdates } from '../data/hooks'
 import { gdeltSearchUrl } from '../data/fireNews'
 import { getFireHistory } from '../lib/fireHistory'
@@ -70,7 +73,7 @@ export function IncidentDetail({ fire, places, historyVersion = 0, onClose }: Pr
   const { data: news, isLoading: newsLoading, isError: newsError } = useFireNews(fire)
   const resolution = fire.status === 'active' ? resolveFireStatus(fire) : null
 
-  const sources = useMemo(() => fireSources(fire), [fire])
+  const sources = useMemo(() => fireSources(fire, { aqiFromBackend: dataMode === 'supabase' }), [fire])
   const dataSources = sources.filter((s) => s.kind === 'data')
   const referenceSources = sources.filter((s) => s.kind === 'reference')
 
@@ -133,7 +136,11 @@ export function IncidentDetail({ fire, places, historyVersion = 0, onClose }: Pr
       )}
 
       <dl className="detail-stats">
-        <Stat label="Size" value={formatArea(fire.acres, units)} />
+        <Stat label="Size" value={
+          <span title={`NWCG size class ${sizeClass(fire.acres)}: ${SIZE_CLASS_RANGE[sizeClass(fire.acres)]}`}>
+            {formatArea(fire.acres, units)} <span className="size-class">Class {sizeClass(fire.acres)}</span>
+          </span>
+        } />
         <Stat label="Severity" value={fire.severity} />
         <Stat label="Cause" value={<CauseValue cause={fire.cause} />} />
         <Stat label="Wind" value={formatWind(fire.weather.windSpeedMph, fire.weather.windDirectionDeg, units)} />

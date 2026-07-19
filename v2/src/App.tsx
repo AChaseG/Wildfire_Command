@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { useFires, useHotspots } from './data/hooks'
 import { useRealtimeSync } from './data/realtime'
 import { dataMode } from './data/fires'
@@ -12,7 +12,10 @@ import { useKeyLocations } from './hooks/useKeyLocations'
 import { usePlaceAlerts } from './hooks/usePlaceAlerts'
 import { recordObservations } from './lib/fireHistory'
 import { BASEMAPS, DEFAULT_BASEMAP_ID } from './lib/basemaps'
-import { FireMap, type MapMode } from './map/FireMap'
+import type { MapMode } from './map/FireMap'
+// Code-split MapLibre (the largest dependency) into its own chunk so the shell
+// and incident list paint before the map engine loads.
+const FireMap = lazy(() => import('./map/FireMap').then((m) => ({ default: m.FireMap })))
 import { IncidentList } from './components/IncidentList'
 import { AlertsList } from './components/AlertsList'
 import { PlacesList } from './components/PlacesList'
@@ -182,13 +185,15 @@ export default function App() {
         </aside>
 
         <div className="map-wrap">
-          <FireMap
-            fires={fires} hotspots={hotspots} showHotspots={showHotspots}
-            selectedId={selectedId} onSelect={setSelectedId}
-            mode={mode} units={units} keyLocations={locations} onPlaceLocation={handlePlace}
-            onBoundsChange={setViewBounds} focusPlace={mapFocus}
-            basemapId={basemapId}
-          />
+          <Suspense fallback={<div className="map-loading">Loading map…</div>}>
+            <FireMap
+              fires={fires} hotspots={hotspots} showHotspots={showHotspots}
+              selectedId={selectedId} onSelect={setSelectedId}
+              mode={mode} units={units} keyLocations={locations} onPlaceLocation={handlePlace}
+              onBoundsChange={setViewBounds} focusPlace={mapFocus}
+              basemapId={basemapId}
+            />
+          </Suspense>
           <div className="map-tools">
             <button className={`map-toggle ${showHotspots ? 'on' : ''}`} onClick={() => setShowHotspots((v) => !v)} type="button">
               <span className="toggle-dot" /> FIRMS hotspots

@@ -34,9 +34,11 @@ describe('fireSources', () => {
     expect(wind!.url).toContain('latitude=34.0500')
   })
 
-  it('adds the air-quality source only when AQI is present', () => {
+  it('adds the air-quality source only when AQI is present, attributed by mode', () => {
     expect(names(fire())).not.toContain('Open-Meteo Air Quality')
-    expect(names(fire({ weather: { windSpeedMph: null, windDirectionDeg: null, aqi: 152 } }))).toContain('Open-Meteo Air Quality')
+    const withAqi = fire({ weather: { windSpeedMph: null, windDirectionDeg: null, aqi: 152 } })
+    expect(fireSources(withAqi).map((s) => s.name)).toContain('Open-Meteo Air Quality')
+    expect(fireSources(withAqi, { aqiFromBackend: true }).map((s) => s.name)).toContain('PurpleAir')
   })
 
   it('always includes reference sources (WildCAD, Broadcastify, InciWeb, FIRMS)', () => {

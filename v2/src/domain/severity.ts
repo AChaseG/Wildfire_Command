@@ -27,3 +27,27 @@ export function severityFromAcres(acres: number): Severity {
 export function compareSeverity(a: Severity, b: Severity): number {
   return SEVERITY_META[a].rank - SEVERITY_META[b].rank
 }
+
+// NWCG Fire Size Class — the official interagency size standard (by acres).
+// https://www.nwcg.gov/node/432922
+export type SizeClass = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G'
+
+export function sizeClass(acres: number): SizeClass {
+  if (acres <= 0.25) return 'A'
+  if (acres < 10) return 'B'
+  if (acres < 100) return 'C'
+  if (acres < 300) return 'D'
+  if (acres < 1_000) return 'E'
+  if (acres < 5_000) return 'F'
+  return 'G'
+}
+
+export const SIZE_CLASS_RANGE: Record<SizeClass, string> = {
+  A: '¼ acre or less',
+  B: '¼ to 10 acres',
+  C: '10 to 100 acres',
+  D: '100 to 300 acres',
+  E: '300 to 1,000 acres',
+  F: '1,000 to 5,000 acres',
+  G: '5,000+ acres',
+}

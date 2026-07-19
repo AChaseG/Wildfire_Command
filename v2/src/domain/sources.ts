@@ -59,7 +59,13 @@ function wfigsRecordUrl(externalId: string | null): string {
   return `${WFIGS_LAYER}?where=${where}&outFields=*&returnGeometry=true&outSR=4326&f=html`
 }
 
-export function fireSources(fire: Fire): FireSource[] {
+export interface SourceOptions {
+  // AQI comes from Open-Meteo's Air Quality API in browser (live) mode, but from
+  // PurpleAir sensors when the Supabase backend enriches it.
+  aqiFromBackend?: boolean
+}
+
+export function fireSources(fire: Fire, opts: SourceOptions = {}): FireSource[] {
   const { lat, lng } = fire.location
   const at = `latitude=${lat.toFixed(4)}&longitude=${lng.toFixed(4)}`
   const sources: FireSource[] = []
@@ -87,12 +93,19 @@ export function fireSources(fire: Fire): FireSource[] {
   if (fire.weather.aqi != null) {
     // Browser-direct (live) AQI comes from Open-Meteo's Air Quality API; the
     // optional backend instead sources it from PurpleAir sensors.
-    sources.push({
-      name: 'Open-Meteo Air Quality',
-      contributes: 'Air quality (US AQI)',
-      url: `https://open-meteo.com/en/docs/air-quality-api?${at}`,
-      kind: 'data',
-    })
+    sources.push(opts.aqiFromBackend
+      ? {
+          name: 'PurpleAir',
+          contributes: 'Air quality (AQI)',
+          url: `https://map.purpleair.com/?zoom=11&lat=${lat.toFixed(4)}&lng=${lng.toFixed(4)}`,
+          kind: 'data',
+        }
+      : {
+          name: 'Open-Meteo Air Quality',
+          contributes: 'Air quality (US AQI)',
+          url: `https://open-meteo.com/en/docs/air-quality-api?${at}`,
+          kind: 'data',
+        })
   }
 
   // --- Authoritative references to cross-check this incident ---

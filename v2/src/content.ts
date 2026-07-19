@@ -1,17 +1,18 @@
 // Static help/marketing content surfaced in Settings.
 
-export const APP_VERSION = '2.3.0'
+export const APP_VERSION = '2.4.0'
 export const REPO_URL = 'https://github.com/AChaseG/Wildfire_Command'
 
 export interface TutorialStep { title: string; body: string }
 
 export const TUTORIAL: TutorialStep[] = [
-  { title: 'Browse incidents', body: 'The left panel lists active wildfires. Search by name or place, and filter by status (Active, Contained, Out).' },
-  { title: 'Inspect a fire', body: 'Select an incident to open its detail panel — size, severity, cause, wind, air quality, recent updates, and how far it is from each of your saved places.' },
-  { title: 'Read the map', body: 'Fires are colored by severity (green → red). Toggle FIRMS satellite hotspots, switch basemaps (Dark, Light, Streets, Satellite), and zoom/pan freely.' },
+  { title: 'Browse incidents', body: 'The left panel lists wildfires currently in the map view — pan or zoom the map to change what’s listed. Search by name or place, and filter by status (Active, Contained, Out).' },
+  { title: 'Inspect a fire', body: 'Select an incident for its detail panel: size and NWCG size class, cause (arson vs. accidental where known), wind and air quality, distance to each saved place, an updates timeline, nearby news, and links to every data source.' },
+  { title: 'Read the map', body: 'Each fire is a flame icon colored by severity (green → red) and sized to its severity. Hover one for a quick card (name, start date, containment). Toggle FIRMS hotspots (backend), switch basemaps, and zoom/pan freely.' },
   { title: 'Measure distance', body: 'Turn on Measure and click points on the map to sum the great-circle distance between them.' },
-  { title: 'Save places & get alerts', body: 'On the Places tab, add a location by address or by dropping a pin, give it a name and star color, and set an alert radius. Enable alerts to get a browser notification when a fire enters that radius.' },
-  { title: 'Make it yours', body: 'Use Settings to switch light/dark theme and mi/km units, and to set the alert sound volume.' },
+  { title: 'Save places & alerts', body: 'On Places, add a location by address or by dropping a pin, name it, pick a star color, and set an alert radius. Enable alerts for a browser notification when a fire enters that radius. Select a place to filter the incident list to its radius.' },
+  { title: 'Watch what matters', body: 'The Alerts tab focuses on fires near your saved places or of extreme severity, including hazardous-air warnings.' },
+  { title: 'Tune it', body: 'Settings holds theme, units, default basemap, a drop-off window that hides fires with no recent update, alert-sound volume, and Integrations (an optional scanner feed).' },
 ]
 
 export interface FaqItem { q: string; a: string }
@@ -39,6 +40,16 @@ export const FAQ: FaqItem[] = [
 export interface ChangelogEntry { version: string; date: string; items: string[] }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '2.4.0',
+    date: '2026-07-14',
+    items: [
+      'Incident size now shows its official NWCG size class (A–G).',
+      'Faster first load — the map engine loads as a separate chunk after the app shell.',
+      'More resilient: a render error now shows a recoverable message instead of a blank screen.',
+      'Refreshed the Tutorial and the About → Data sources list to cover every current feature and source.',
+    ],
+  },
   {
     version: '2.3.0',
     date: '2026-07-14',
@@ -111,9 +122,13 @@ export interface DataSource { name: string; url: string; note: string }
 
 export const DATA_SOURCES: DataSource[] = [
   { name: 'NIFC WFIGS', url: 'https://data-nifc.opendata.arcgis.com/', note: 'Active wildfire incidents' },
-  { name: 'NASA FIRMS', url: 'https://firms.modaps.eosdis.nasa.gov/', note: 'Satellite thermal hotspots' },
-  { name: 'Open-Meteo', url: 'https://open-meteo.com/', note: 'Wind conditions' },
-  { name: 'PurpleAir', url: 'https://www2.purpleair.com/', note: 'Air quality (AQI)' },
+  { name: 'NASA FIRMS', url: 'https://firms.modaps.eosdis.nasa.gov/', note: 'Satellite thermal hotspots (backend)' },
+  { name: 'Open-Meteo', url: 'https://open-meteo.com/', note: 'Wind and air quality (AQI)' },
+  { name: 'PurpleAir', url: 'https://www2.purpleair.com/', note: 'Air quality (AQI, backend mode)' },
+  { name: 'GDELT', url: 'https://www.gdeltproject.org/', note: 'Nearby news for an incident' },
+  { name: 'WildCAD · WildWeb', url: 'http://www.wildcad.net/WildCADWeb.asp', note: 'Interagency dispatch (CAD) logs' },
+  { name: 'InciWeb', url: 'https://inciweb.wildfire.gov/', note: 'Official incident updates & closures' },
+  { name: 'Broadcastify', url: 'https://www.broadcastify.com/listen/', note: 'Live fire/police scanner feeds' },
   { name: 'CARTO basemaps', url: 'https://carto.com/basemaps/', note: 'Dark / Light / Streets styles' },
   { name: 'Esri World Imagery', url: 'https://www.esri.com/', note: 'Satellite basemap' },
   { name: 'OpenStreetMap Nominatim', url: 'https://nominatim.openstreetmap.org/', note: 'Address geocoding' },
